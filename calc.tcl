@@ -9,12 +9,17 @@ proc is_op {str} {
 
 proc safe_calc {nick uhost hand chan str} {
 	if {![channel get $chan calc]} { return }
+
 	foreach char [split $str {}] {
 		if {![is_op $char] && ![string is integer $char]} {
 			putserv "PRIVMSG $chan :$nick: Invalid expression for calc."
 			return
 		}
 	}
+
+	# make all values floating point
+	set str [regsub -all -- {(\d+)} $str {[expr {\1*1.0}]}]
+	set str [subst $str]
 
 	if {[catch {expr $str} out]} {
 		putserv "PRIVMSG $chan :$nick: Invalid equation."
