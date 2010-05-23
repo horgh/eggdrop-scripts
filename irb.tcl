@@ -1,5 +1,9 @@
 #
+# 0.2 - ???
+#  - fix error when rehash/restart if socket isnt open
+#
 # 0.1 - May 15 2010
+#  - initial release
 #
 # by horgh (www.summercat.com)
 #
@@ -98,6 +102,7 @@ proc irb::output {} {
 
 # We close channel before restart/rehash
 proc irb::end {args} {
+	if {$irb::irb_chan == ""} { return }
 	close $irb::irb_chan
 	set irb::irb_chan []
 }
