@@ -18,7 +18,7 @@ proc safe_calc {nick uhost hand chan str} {
 	}
 
 	# make all values floating point
-	set str [regsub -all -- {(\d+)} $str {[expr {\1*1.0}]}]
+	set str [regsub -all -- {((?:\d+)?\.?\d+)} $str {[expr {\1*1.0}]}]
 	set str [subst $str]
 
 	if {[catch {expr $str} out]} {
