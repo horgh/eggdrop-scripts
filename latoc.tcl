@@ -1,17 +1,13 @@
-# to debug this
-      #set junk [open "ig-debug.txt" w]
-      #puts $junk $html
-      #close $junk
+# created by horgh
+#
 
 package require http
 
 bind pub -|- "!oil" latoc::oil_handler
-#bind pub -|- "!gold" latoc::gold_handler
+bind pub -|- "!gold" latoc::gold_handler
 bind pub -|- "!c" latoc::commodity_handler
 bind pub -|- "!silver" latoc::silver_handler
 bind pub -|- "!url" latoc::url_handler
-
-setudef flag latoc
 
 namespace eval latoc {
 	variable user_agent "Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 OpenSSL/0.9.7e"
@@ -21,13 +17,48 @@ namespace eval latoc {
 	#variable stock_regexp {<a href="/q\?s=(.*?)">.*?<td class="second name">(.*?)</td><td><b><span id=".*?">(.*?)</span></b> <nobr><span .*?>(.*?)(?:</span>)??</nobr>.*?(?:alt="(.*?)">)?? <b style="color.*?;">(.*?)</b>.*?<b style="color.*?;"> \((.*?)\)</b>}
 	variable stock_regexp {<a href="/q\?s=(.*?)">.*?<td class="second name">(.*?)</td>.*?<span id=".*?">(.*?)</span></b> <nobr><span id=".*?">(.*?)</span></nobr>.*?(?:alt="(.*?)">)?? <b style="color.*?;">(.*?)</b>.*?<b style="color.*?;"> \((.*?)\)</b>}
 
+	# any names matching this pattern are not shown
+	variable skip_regexp {(5000 oz)|(100 oz)}
+
 	variable commodities [list energy metals grains livestock softs]
 	variable energy_futures "http://finance.yahoo.com/futures?t=energy"
 	variable commodities_url "http://finance.yahoo.com/futures?t="
+
+	setudef flag latoc
 }
 
 proc latoc::url_handler {nick uhost hand chan argv} {
 	$latoc::output_cmd "PRIVMSG $chan :$latoc::commodities_url"
+}
+
+# fetch lines from given commodity type (url) and only return lines that
+# match the given pattern (regexp) to Name (optional)
+# return list of lines, each a stock
+proc latoc::fetch {type {pattern {}}} {
+	set token [http::geturl ${latoc::commodities_url}${type} -timeout 60000]
+	set data [http::data $token]
+	set ncode [http::ncode $token]
+	http::cleanup $token
+
+	if {$ncode != 200} {
+		error "HTTP error: (code: $ncode): $data"
+	}
+
+	set lines []
+	foreach stock [regexp -all -inline -- $latoc::list_regexp $data] {
+		regexp $latoc::stock_regexp $stock -> symbol name price last direction change percent
+		if {[regexp -- $pattern $name]} {
+			if {[regexp -- $latoc::skip_regexp $name]} {
+				continue
+			}
+			lappend lines [latoc::format $name $price $last $direction $change $percent]
+		}
+	}
+
+	if {[llength $lines] == 0} {
+		lappend lines "No results."
+	}
+	return $lines
 }
 
 proc latoc::commodity_handler {nick uhost hand chan argv} {
@@ -37,78 +68,52 @@ proc latoc::commodity_handler {nick uhost hand chan argv} {
 		return
 	}
 
-	set token [http::geturl "${latoc::commodities_url}$argv" -timeout 60000]
-	if {![string match "ok" [http::status $token]]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error."
+	if {[catch {latoc::fetch $argv} result]} {
+		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
 		return
 	}
 
-# debug stuff
-#	set html [http::data $token]
-#	set junk [open "commodity-debug.txt" w]
-#	puts $junk $html
-#	close $junk
-
-	foreach stock [regexp -all -inline -- $latoc::list_regexp [http::data $token]] {
-		regexp $latoc::stock_regexp $stock -> symbol name price last direction change percent
-		$latoc::output_cmd "PRIVMSG $chan :[latoc::format $name $price $last $direction $change $percent]"
+	foreach line $result {
+		$latoc::output_cmd "PRIVMSG $chan :$line"
 	}
 }
 
 proc latoc::oil_handler {nick uhost hand chan argv} {
 	if {![channel get $chan latoc]} { return }
 
-	set token [http::geturl $latoc::energy_futures -timeout 60000]
-
-# debug stuff
-#	set html [http::data $token]
-#	set junk [open "oil-debug.txt" w]
-#	puts $junk $html
-#	close $junk
-
-	if {![string match "ok" [http::status $token]]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error."
+	if {[catch {latoc::fetch "energy" "Crude Oil"} result]} {
+		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
 		return
 	}
 
-	foreach stock [regexp -all -inline -- $latoc::list_regexp [http::data $token]] {
-		regexp $latoc::stock_regexp $stock -> symbol name price last direction change percent
-		$latoc::output_cmd "PRIVMSG $chan :[latoc::format $name $price $last $direction $change $percent]"
-		break
+	foreach line $result {
+		$latoc::output_cmd "PRIVMSG $chan :$line"
 	}
 }
 
 proc latoc::gold_handler {nick uhost hand chan argv} {
 	if {![channel get $chan latoc]} { return }
 
-	set token [http::geturl ${latoc::commodities_url}metals -timeout 60000]
-	if {![string match "ok" [http::status $token]]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error."
+	if {[catch {latoc::fetch "metals" "Gold"} result]} {
+		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
 		return
 	}
 
-	foreach stock [regexp -all -inline -- $latoc::list_regexp [http::data $token]] {
-		regexp $latoc::stock_regexp $stock -> symbol name price last direction change percent
-		if {[string match -nocase "*Gold*" $name]} {
-			$latoc::output_cmd "PRIVMSG $chan :[latoc::format $name $price $last $direction $change $percent]"
-		}
+	foreach line $result {
+		$latoc::output_cmd "PRIVMSG $chan :$line"
 	}
 }
 
 proc latoc::silver_handler {nick uhost hand chan argv} {
 	if {![channel get $chan latoc]} { return }
 
-	set token [http::geturl ${latoc::commodities_url}metals -timeout 60000]
-	if {![string match "ok" [http::status $token]]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error."
+	if {[catch {latoc::fetch "metals" "Silver"} result]} {
+		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
 		return
 	}
 
-	foreach stock [regexp -all -inline -- $latoc::list_regexp [http::data $token]] {
-		regexp $latoc::stock_regexp $stock -> symbol name price last direction change percent
-		if {[string match -nocase "*Silver*" $name]} {
-			$latoc::output_cmd "PRIVMSG $chan :[latoc::format $name $price $last $direction $change $percent]"
-		}
+	foreach line $result {
+		$latoc::output_cmd "PRIVMSG $chan :$line"
 	}
 }
 
