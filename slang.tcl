@@ -19,6 +19,12 @@ namespace eval ud {
 	# maximum lines to output
 	variable max_lines 1
 
+	# approximate characters per line
+	variable line_length 400
+
+	# show truncated message / url if more than one line
+	variable show_truncate 1
+
 	variable output_cmd "putserv"
 
 	variable client "Mozilla/5.0 (compatible; Y!J; for robot study; keyoshid)"
@@ -51,9 +57,11 @@ proc ud::handler {nick uhost hand chan argv} {
 		return
 	}
 
-	foreach line [ud::split_line 400 [dict get $result definition]] {
+	foreach line [ud::split_line $ud::line_length [dict get $result definition]] {
 		if {[incr output] > $ud::max_lines} {
-			$ud::output_cmd "PRIVMSG $chan :Output truncated. ${ud::url}?[http::formatQuery term $query defid [dict get $result number]]"
+			if {$ud::show_truncate} {
+				$ud::output_cmd "PRIVMSG $chan :Output truncated. ${ud::url}?[http::formatQuery term $query defid [dict get $result number]]"
+			}
 			break
 		}
 		$ud::output_cmd "PRIVMSG $chan :$line"
