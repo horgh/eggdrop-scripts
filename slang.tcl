@@ -32,11 +32,12 @@ namespace eval ud {
 
 proc ud::handler {nick uhost hand chan argv} {
 	if {![channel get $chan ud]} { return }
+	set argv [split $argv]
 	if {[string is digit [lindex $argv 0]]} {
 		set number [lindex $argv 0]
-		set query [lrange $argv 1 end]
+		set query [join [lrange $argv 1 end]]
 	} else {
-		set query $argv
+		set query [join $argv]
 		set number 1
 	}
 
