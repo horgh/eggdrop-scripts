@@ -62,6 +62,8 @@ proc ud::handler {nick uhost hand chan argv} {
 proc ud::fetch {query number} {
 	http::config -useragent $ud::client
 	set page [expr {int(ceil($number / 7.0))}]
+	set number [expr {$number - (($page - 1) * 7)}]
+
 	set http_query [http::formatQuery term $query page $page]
 
 	set token [http::geturl $ud::url -timeout 20000 -query $http_query]
