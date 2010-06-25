@@ -52,7 +52,7 @@ proc ud::handler {nick uhost hand chan argv} {
 
 	foreach line [ud::split_line 400 [dict get $result definition]] {
 		if {[incr output] > $ud::max_lines} {
-			$ud::output_cmd "PRIVMSG $chan :Output truncated. See the rest at ${ud::url}?[http::formatQuery term $query defid [dict get $result number]]"
+			$ud::output_cmd "PRIVMSG $chan :Output truncated. ${ud::url}?[http::formatQuery term $query defid [dict get $result number]]"
 			break
 		}
 		$ud::output_cmd "PRIVMSG $chan :$line"
@@ -86,6 +86,7 @@ proc ud::parse {query raw_definition} {
 	set definition [htmlparse::mapEscapes $definition]
 	set definition [regsub -all -- {<.*?>} $definition ""]
 	set definition [regsub -all -- {\n+} $definition " "]
+	set definition [string tolower $definition]
 	return [list number $number definition "$query is $definition"]
 }
 
