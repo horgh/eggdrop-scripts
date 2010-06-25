@@ -1,5 +1,5 @@
 #
-# ud.tcl - June 24 2010
+# slang.tcl - June 24 2010
 # by horgh
 #
 # Requires Tcl 8.5+ and tcllib
@@ -93,7 +93,9 @@ proc ud::fetch {query number} {
 }
 
 proc ud::parse {query raw_definition} {
-	regexp $ud::def_regexp $raw_definition -> number definition
+	if {![regexp $ud::def_regexp $raw_definition -> number definition]} {
+		error "Could not parse HTML"
+	}
 	set definition [htmlparse::mapEscapes $definition]
 	set definition [regsub -all -- {<.*?>} $definition ""]
 	set definition [regsub -all -- {\n+} $definition " "]
