@@ -4,7 +4,7 @@
 #
 # Requires Tcl 8.5+ and tcllib
 #
-# Made with heavy inspiration from perpleXa's script!
+# Made with heavy inspiration from perpleXa's urbandict script!
 #
 # Must .chanset #channel +ud
 #
@@ -30,17 +30,17 @@ namespace eval ud {
 
 proc ud::trigger {nick uhost hand chan argv} {
 	if {![channel get $chan ud]} { return }
-	if {$argv == ""} {
-		$ud::output_cmd "PRIVMSG $chan :Usage: slang \[#\] <definition to look up>"
-		return
-	}
-
 	if {[string is digit [lindex $argv 0]]} {
 		set number [lindex $argv 0]
 		set query [lrange $argv 1 end]
 	} else {
 		set query $argv
 		set number 1
+	}
+
+	if {$query == ""} {
+		$ud::output_cmd "PRIVMSG $chan :Usage: slang \[#\] <definition to look up>"
+		return
 	}
 
 	if {[catch {ud::fetch $query $number} result]} {
