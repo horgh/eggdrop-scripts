@@ -13,16 +13,15 @@ package require htmlparse
 package require http
 
 namespace eval ud {
-	variable output_cmd "putserv"
+	bind pub -|- "slang" ud::trigger
 
 	# maximum lines to output
 	variable max_lines 1
 
+	variable output_cmd "putserv"
+
 	variable client "Mozilla/5.0 (compatible; Y!J; for robot study; keyoshid)"
 	variable url http://www.urbandictionary.com/define.php
-
-	bind pub -|- "slang" ud::trigger
-
 	variable list_regexp {<td class='text'.*? id='entry_.*?'>.*?</td>}
 	variable def_regexp {id='entry_(.*?)'>.*?<div class='definition'>(.*?)</div>}
 
@@ -83,7 +82,8 @@ proc ud::fetch {query number} {
 proc ud::parse {raw_definition} {
 	regexp $ud::def_regexp $raw_definition -> number definition
 	set definition [htmlparse::mapEscapes $definition]
-	set definition [regsub -all -- {(\n|<br/>)+} $definition " "]
+	set definition [regsub -all -- {<.*?>} $definition ""]
+	set definition [regsub -all -- {\n+} $definition " "]
 	return [list number $number definition $definition]
 }
 
