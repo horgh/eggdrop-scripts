@@ -13,7 +13,8 @@ package require htmlparse
 package require http
 
 namespace eval ud {
-	bind pub -|- "slang" ud::trigger
+	# set this to !ud or whatever you want
+	variable trigger "slang"
 
 	# maximum lines to output
 	variable max_lines 1
@@ -26,9 +27,10 @@ namespace eval ud {
 	variable def_regexp {id='entry_(.*?)'>.*?<div class='definition'>(.*?)</div>}
 
 	setudef flag ud
+	bind pub -|- $ud::trigger ud::handler
 }
 
-proc ud::trigger {nick uhost hand chan argv} {
+proc ud::handler {nick uhost hand chan argv} {
 	if {![channel get $chan ud]} { return }
 	if {[string is digit [lindex $argv 0]]} {
 		set number [lindex $argv 0]
@@ -39,7 +41,7 @@ proc ud::trigger {nick uhost hand chan argv} {
 	}
 
 	if {$query == ""} {
-		$ud::output_cmd "PRIVMSG $chan :Usage: slang \[#\] <definition to look up>"
+		$ud::output_cmd "PRIVMSG $chan :Usage: $ud::trigger \[#\] <definition to look up>"
 		return
 	}
 
@@ -76,15 +78,15 @@ proc ud::fetch {query number} {
 		error "[llength $definitions] definitions found."
 	}
 
-	return [ud::parse [lindex $definitions [expr {$number - 1}]]]
+	return [ud::parse $query [lindex $definitions [expr {$number - 1}]]]
 }
 
-proc ud::parse {raw_definition} {
+proc ud::parse {query raw_definition} {
 	regexp $ud::def_regexp $raw_definition -> number definition
 	set definition [htmlparse::mapEscapes $definition]
 	set definition [regsub -all -- {<.*?>} $definition ""]
 	set definition [regsub -all -- {\n+} $definition " "]
-	return [list number $number definition $definition]
+	return [list number $number definition "$query is $definition"]
 }
 
 # by fedex
