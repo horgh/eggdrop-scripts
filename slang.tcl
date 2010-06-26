@@ -8,6 +8,8 @@
 #
 # Must .chanset #channel +ud
 #
+# Uses is.gd to shorten long definition URL if isgd.tcl package present
+#
 
 package require htmlparse
 package require http
@@ -34,6 +36,9 @@ namespace eval ud {
 
 	setudef flag ud
 	bind pub -|- $ud::trigger ud::handler
+
+	# 0 if isgd package is present
+	variable isgd_disabled [catch {package require isgd}]
 }
 
 proc ud::handler {nick uhost hand chan argv} {
@@ -60,7 +65,7 @@ proc ud::handler {nick uhost hand chan argv} {
 	foreach line [ud::split_line $ud::line_length [dict get $result definition]] {
 		if {[incr output] > $ud::max_lines} {
 			if {$ud::show_truncate} {
-				$ud::output_cmd "PRIVMSG $chan :Output truncated. ${ud::url}?[http::formatQuery term $query defid [dict get $result number]]"
+				$ud::output_cmd "PRIVMSG $chan :Output truncated. [ud::def_url $query $result]"
 			}
 			break
 		}
@@ -101,6 +106,19 @@ proc ud::parse {query raw_definition} {
 	set definition [regsub -all -- {\n+} $definition " "]
 	set definition [string tolower $definition]
 	return [list number $number definition "$query is $definition"]
+}
+
+proc ud::def_url {query result} {
+	set raw_url ${ud::url}?[http::formatQuery term $query defid [dict get $result number]]
+	if {$ud::isgd_disabled} {
+		return $raw_url
+	} else {
+		if {[catch {isgd::shorten $raw_url} shortened]} {
+			return "$raw_url (is.gd error)"
+		} else {
+			return $shortened
+		}
+	}
 }
 
 # by fedex
