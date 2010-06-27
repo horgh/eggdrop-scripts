@@ -89,6 +89,8 @@ proc wiki::search {nick uhost hand chan argv} {
 	}
 
 	set argv [string trim $argv]
+	# Upper case first character
+	set argv [string toupper [string index $argv 0]][string range $argv 1 end]
 
 	if {[catch {wiki::fetch $argv} data]} {
 		$wiki::output_cmd "PRIVMSG $chan :Error: $data"
