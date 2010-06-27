@@ -2,6 +2,8 @@
 # June 26 2010
 # by horgh
 #
+# bash.org quote fetcher
+#
 # Requires Tcl 8.5+ and tcllib
 #
 # Must .chanset #channel +bash
@@ -18,7 +20,7 @@ package require htmlparse
 
 namespace eval bash {
 	variable trigger !bash
-	variable line_length 400
+	variable line_length 399
 	variable max_lines 10
 
 	variable useragent "Mozilla/5.0 (compatible; Y!J; for robot study; keyoshid)"
@@ -54,7 +56,7 @@ proc bash::quote_output {chan quote} {
 			break
 		} else {
 			foreach subline [bash::split_line $bash::line_length $line] {
-				$bash::output_cmd "PRIVMSG $chan :$subline"
+				$bash::output_cmd "PRIVMSG $chan : $subline"
 			}
 		}
 	}
@@ -79,7 +81,7 @@ proc bash::handler {nick uhost hand chan argv} {
 	}
 }
 
-proc bash::random {} {
+proc bash::random {chan} {
 	if {![llength $bash::random_quotes]} {
 		$bash::output_cmd "PRIVMSG $chan :Fetching new random quotes..."
 		set bash::random_quotes [bash::fetch ${bash::url}random1]
@@ -89,7 +91,7 @@ proc bash::random {} {
 	return $quote
 }
 
-proc bash::search {query} {
+proc bash::search {query chan} {
 	if {![dict exists $bash::search_quotes $query]} {
 		$bash::output_cmd "PRIVMSG $chan :Fetching results..."
 		set url ${bash::url}[http::formatQuery search $query sort 0 show 25]
@@ -110,8 +112,6 @@ proc bash::search {query} {
 }
 
 proc bash::fetch {url} {
-	putlog "Fetching new bash.org quotes: $url"
-
 	http::config -useragent $bash::useragent
 	set token [http::geturl $url -timeout 10000]
 	set data [http::data $token]
