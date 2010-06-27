@@ -2,6 +2,12 @@
 # Mar 30 2010
 # by horgh
 #
+# Requires Tcl 8.5+ and tcllib
+#
+# Wikipedia.org fetcher
+#
+# To enable you must .chanset #channel +wiki
+#
 
 package require http
 package require htmlparse
