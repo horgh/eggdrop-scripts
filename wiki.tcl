@@ -8,6 +8,8 @@
 #
 # To enable you must .chanset #channel +wiki
 #
+# Tests: Whole number (list of possible interpretations)
+#
 
 package require http
 package require htmlparse
@@ -21,7 +23,7 @@ namespace eval wiki {
 	bind pub -|- "!wiki" wiki::search
 
 #	variable parse_regexp {(<table class.*?<p>.*?</p>.*?</table>)??.*?<p>(.*?)</p>\n<table id="toc"}
-	variable parse_regexp {</table>.*?<p>(.*)</p>.*?<table id="toc"}
+	variable parse_regexp {(?:</table>)?.*?<p>(.*)((</ul>)|(</p>)).*?((<table id="toc")|(<h2>)|(<table id="disambigbox"))}
 
 	setudef flag wiki
 }
@@ -56,10 +58,10 @@ proc wiki::fetch {term {url {}}} {
 	}
 
 	# If page returns list of results, choose the first one and fetch that
-	if {[regexp -- {<p>.*?may refer to:</p>} $data]} {
-		regexp -- {<ul>.*?<li>.*? title="(.*?)">.*?</li>} $data -> new_query
-		return [wiki::fetch $new_query]
-	}
+	#if {[regexp -- {<p>.*?((may refer to:)|(in one of the following senses:))</p>} $data]} {
+	#	regexp -- {<ul>.*?<li>.*? title="(.*?)">.*?</li>} $data -> new_query
+	#	return [wiki::fetch $new_query]
+	#}
 
 	if {![regexp -- $wiki::parse_regexp $data -> out]} {
 		error "Parse error"
