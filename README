@@ -7,3 +7,6 @@ isgd.tcl - provide function that shortens a given url using http://is.gd
 latoc.tcl - queries yahoo commodity listings for: energy, metals, grains, livestock, softs
 slang.tcl - urbandictionary.com definition fetcher
 wiki.tcl - wikipedia.org synopsis fetcher
+
+Edited versions of scripts written by others:
+imdb.tcl - IMDB.org query script. Written by B0unTy, modified by OV2

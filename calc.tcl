@@ -1,6 +1,7 @@
 # created by fedex
 
 bind pub - !calc safe_calc
+bind pub - .calc safe_calc
 setudef flag calc
 
 proc is_op {str} {
