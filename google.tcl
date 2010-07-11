@@ -2,6 +2,8 @@
 # 0.3 - ?
 #  - switch from decode_html to htmlparse::mapEscape
 #  - fix issue with encoding getting ascii
+#  - add !g1 for one result
+#  - strip remaining html from api result
 #
 # 0.2 - May 10 2010
 #  - fix for garbled utf chars in api queries
@@ -39,6 +41,7 @@ namespace eval google {
 
 	bind pub	-|- "!g" google::search
 	bind pub	-|- "!google" google::search
+	bind pub	-|- "!g1" google::search1
 	bind pub	-|- "!news" google::news
 	bind pub	-|- "!images" google::images
 	bind pub	-|- "!convert" google::convert
@@ -103,6 +106,7 @@ proc google::convert {nick uhost hand chan argv} {
 # Output for results from api query
 proc google::output {chan url title content} {
 	regsub -all -- {(?:<b>|</b>)} $title "\002" title
+	regsub -all -- {<.*?>} $title "" title
 	set output "$title @ $url"
 	$google::output_cmd "PRIVMSG $chan :[htmlparse::mapEscapes $output]"
 }
@@ -151,13 +155,16 @@ proc google::api_validate {argv url} {
 }
 
 # Query api
-proc google::api_handler {chan argv url} {
+proc google::api_handler {chan argv url {num {}}} {
 	if {[catch {google::api_validate $argv $url} results]} {
 		$google::output_cmd "PRIVMSG $chan :$results"
 		return
 	}
 
 	foreach result $results {
+		if {$num != "" && [incr count] > $num} {
+			return
+		}
 		dict with result {
 			# $language holds lang in news results, doesn't exist in web results
 			if {![info exists language] || $language == "en"} {
@@ -172,6 +179,13 @@ proc google::search {nick uhost hand chan argv} {
 	if {![channel get $chan google]} { return }
 
 	google::api_handler $chan $argv ${google::api_url}web
+}
+
+# Regular API search, 1 result
+proc google::search1 {nick uhost hand chan argv} {
+	if {![channel get $chan google]} { return }
+
+	google::api_handler $chan $argv ${google::api_url}web 1
 }
 
 # News from API
