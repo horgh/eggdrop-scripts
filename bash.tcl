@@ -44,6 +44,10 @@ namespace eval bash {
 }
 
 proc bash::quote_output {chan quote} {
+	if {$quote == ""} {
+		$bash::output_cmd "PRIVMSG $chan :No result!"
+		return
+	}
 	set number [dict get $quote number]
 	set rating [dict get $quote rating]
 	set quote [htmlparse::mapEscapes [dict get $quote quote]]
