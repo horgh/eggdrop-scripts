@@ -32,6 +32,7 @@ proc myquote::connect {} {
 	# If connection not initialised or has disconnected
 	if {![mysql::state $myquote::conn -numeric] || ![mysql::ping $myquote::conn]} {
 		set myquote::conn [mysql::connect -host $myquote::host -user $myquote::user -password $myquote::pass -db $myquote::db]
+		putlog "Connecting to db..."
 	}
 }
 
@@ -60,6 +61,7 @@ proc myquote::fetch_search {terms} {
 
 proc myquote::stats {nick host hand chan argv} {
 	if {![channel get $chan quote]} { return }
+	myquote::connect
 	set stmt "SELECT COUNT(qid) FROM quote"
 	mysql::sel $myquote::conn $stmt
 	mysql::map $myquote::conn {c} {
@@ -70,6 +72,7 @@ proc myquote::stats {nick host hand chan argv} {
 
 proc myquote::latest {nick host hand chan argv} {
 	if {![channel get $chan quote]} { return }
+	myquote::connect
 	set stmt "SELECT qid, quote FROM quote ORDER BY qid DESC LIMIT 1"
 	myquote::output $chan [myquote::fetch_single $stmt]
 }
@@ -86,6 +89,7 @@ proc myquote::quote_by_id {id} {
 
 proc myquote::quote {nick host hand chan argv} {
 	if {![channel get $chan quote]} { return }
+	myquote::connect
 	if {$argv == ""} {
 		myquote::output $chan [myquote::random]
 	} elseif {[string is integer $argv]} {
@@ -120,6 +124,7 @@ proc myquote::delquote {nick host hand chan argv} {
 		$myquote::output_cmd "PRIVMSG $chan :Usage: delquote <#>"
 		return
 	}
+	myquote::connect
 	set stmt "DELETE FROM quote WHERE qid = ${argv}"
 	set count [mysql::exec $myquote::conn $stmt]
 	$myquote::output_cmd "PRIVMSG $chan :#${argv} deleted. ($count quotes affected.)"
