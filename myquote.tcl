@@ -29,10 +29,9 @@ namespace eval myquote {
 }
 
 proc myquote::connect {} {
-	if {![mysql::state $myquote::conn -numeric]} {
+	# If connection not initialised or has disconnected
+	if {![mysql::state $myquote::conn -numeric] || ![mysql::ping $myquote::conn]} {
 		set myquote::conn [mysql::connect -host $myquote::host -user $myquote::user -password $myquote::pass -db $myquote::db]
-	} else {
-		mysql::ping $myquote::conn
 	}
 }
 
@@ -48,7 +47,7 @@ proc myquote::fetch_single {stmt} {
 proc myquote::fetch_search {terms} {
 	putlog "Retrieving new quotes for $terms..."
 	set terms [mysql::escape $myquote::conn $terms]
-	set stmt "SELECT qid, quote FROM quote WHERE quote LIKE \"%${terms}%\""
+	set stmt "SELECT qid, quote FROM quote WHERE quote LIKE \"%${terms}%\" LIMIT 20"
 	set count [mysql::sel $myquote::conn $stmt]
 	if {$count <= 0} {
 		return []
