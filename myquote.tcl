@@ -1,6 +1,25 @@
 #
 # 16/08/2010
-# by cd
+# by horgh
+#
+# MySQL quote script
+#
+# Setup:
+#  The table must be called "quote" and have the following schema:
+#  CREATE TABLE quote (
+#   	qid SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+#   	uid SMALLINT UNSIGNED NOT NULL,
+#   	quote TEXT NOT NULL,
+#   	PRIMARY KEY (qid)
+#  );
+#  Other keys are possible but not required
+#
+# aq (addquote) usage:
+#  - \n starts a new line for the quote
+#  - e.g.: aq <user> hi there!\n<user2> hey
+#    becomes the quote:
+#     <user> hi there
+#     <user2> hey
 #
 
 package require mysqltcl
@@ -23,6 +42,7 @@ namespace eval myquote {
 	bind pub -|- latest     myquote::latest
 	bind pub -|- quotestats myquote::stats
 	bind pub -|- quote      myquote::quote
+	bind pub -|- aq         myquote::addquote
 	bind pub m|- delquote   myquote::delquote
 
 	setudef flag quote
@@ -117,6 +137,21 @@ proc myquote::search {terms} {
 		dict set myquote::results $terms $quotes
 	}
 	return [list $quote [llength $quotes]]
+}
+
+proc myquote::addquote {nick host hand chan argv} {
+	if {![channel get $chan quote]} { return }
+	if {$argv == ""} {
+		$myquote::output_cmd "PRIVMSG $chan :Usage: aq <text...>"
+		return
+	}
+	myquote::connect
+
+	set argv [regsub -all -- {\\n} $argv \n]
+	set quote [mysql::escape $myquote::conn $argv]
+	set stmt "INSERT INTO quote (uid, quote) VALUES(1, \"${quote}\")"
+	set count [mysql::exec $myquote::conn $stmt]
+	$myquote::output_cmd "PRIVMSG $chan :${count} quote added."
 }
 
 proc myquote::delquote {nick host hand chan argv} {
