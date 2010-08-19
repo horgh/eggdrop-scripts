@@ -24,7 +24,7 @@
 
 package require mysqltcl
 
-namespace eval myquote {
+namespace eval sqlquote {
 	variable output_cmd putserv
 
 	# MySQL settings
@@ -39,136 +39,136 @@ namespace eval myquote {
 	# search results stored in this dict
 	variable results []
 
-	bind pub -|- latest     myquote::latest
-	bind pub -|- quotestats myquote::stats
-	bind pub -|- quote      myquote::quote
-	bind pub -|- aq         myquote::addquote
-	bind pub m|- delquote   myquote::delquote
+	bind pub -|- latest     sqlquote::latest
+	bind pub -|- quotestats sqlquote::stats
+	bind pub -|- quote      sqlquote::quote
+	bind pub -|- aq         sqlquote::addquote
+	bind pub m|- delquote   sqlquote::delquote
 
 	setudef flag quote
 }
 
-proc myquote::connect {} {
+proc sqlquote::connect {} {
 	# If connection not initialised or has disconnected
-	if {![mysql::state $myquote::conn -numeric] || ![mysql::ping $myquote::conn]} {
-		set myquote::conn [mysql::connect -host $myquote::host -user $myquote::user -password $myquote::pass -db $myquote::db]
+	if {![mysql::state $sqlquote::conn -numeric] || ![mysql::ping $sqlquote::conn]} {
+		set sqlquote::conn [mysql::connect -host $sqlquote::host -user $sqlquote::user -password $sqlquote::pass -db $sqlquote::db]
 		putlog "Connecting to db..."
 	}
 }
 
 # fetch a single quote row with given statement
-proc myquote::fetch_single {stmt} {
-	mysql::sel $myquote::conn $stmt
-	mysql::map $myquote::conn {qid quote} {
+proc sqlquote::fetch_single {stmt} {
+	mysql::sel $sqlquote::conn $stmt
+	mysql::map $sqlquote::conn {qid quote} {
 		set q [list qid $qid quote $quote]
 	}
 	return $q
 }
 
-proc myquote::fetch_search {terms} {
+proc sqlquote::fetch_search {terms} {
 	putlog "Retrieving new quotes for $terms..."
-	set terms [mysql::escape $myquote::conn $terms]
+	set terms [mysql::escape $sqlquote::conn $terms]
 	set stmt "SELECT qid, quote FROM quote WHERE quote LIKE \"%${terms}%\" LIMIT 20"
-	set count [mysql::sel $myquote::conn $stmt]
+	set count [mysql::sel $sqlquote::conn $stmt]
 	if {$count <= 0} {
 		return []
 	}
-	mysql::map $myquote::conn {qid quote} {
+	mysql::map $sqlquote::conn {qid quote} {
 		lappend quotes [list qid $qid quote $quote]
 	}
 	return $quotes
 }
 
-proc myquote::stats {nick host hand chan argv} {
+proc sqlquote::stats {nick host hand chan argv} {
 	if {![channel get $chan quote]} { return }
-	myquote::connect
+	sqlquote::connect
 	set stmt "SELECT COUNT(qid) FROM quote"
-	mysql::sel $myquote::conn $stmt
-	mysql::map $myquote::conn {c} {
+	mysql::sel $sqlquote::conn $stmt
+	mysql::map $sqlquote::conn {c} {
 		set count $c
 	}
-	$myquote::output_cmd "PRIVMSG $chan :There are $count quotes in the database."
+	$sqlquote::output_cmd "PRIVMSG $chan :There are $count quotes in the database."
 }
 
-proc myquote::latest {nick host hand chan argv} {
+proc sqlquote::latest {nick host hand chan argv} {
 	if {![channel get $chan quote]} { return }
-	myquote::connect
+	sqlquote::connect
 	set stmt "SELECT qid, quote FROM quote ORDER BY qid DESC LIMIT 1"
-	myquote::output $chan [myquote::fetch_single $stmt]
+	sqlquote::output $chan [sqlquote::fetch_single $stmt]
 }
 
-proc myquote::random {} {
+proc sqlquote::random {} {
 	set stmt "SELECT qid, quote FROM quote ORDER BY RAND() LIMIT 1"
-	return [myquote::fetch_single $stmt]
+	return [sqlquote::fetch_single $stmt]
 }
 
-proc myquote::quote_by_id {id} {
+proc sqlquote::quote_by_id {id} {
 	set stmt "SELECT qid, quote FROM quote WHERE qid = ${id}"
-	return [myquote::fetch_single $stmt]
+	return [sqlquote::fetch_single $stmt]
 }
 
-proc myquote::quote {nick host hand chan argv} {
+proc sqlquote::quote {nick host hand chan argv} {
 	if {![channel get $chan quote]} { return }
-	myquote::connect
+	sqlquote::connect
 	if {$argv == ""} {
-		myquote::output $chan [myquote::random]
+		sqlquote::output $chan [sqlquote::random]
 	} elseif {[string is integer $argv]} {
-		myquote::output $chan [myquote::quote_by_id $argv]
+		sqlquote::output $chan [sqlquote::quote_by_id $argv]
 	} else {
-		myquote::output $chan {*}[myquote::search $argv]
+		sqlquote::output $chan {*}[sqlquote::search $argv]
 	}
 }
 
-proc myquote::search {terms} {
+proc sqlquote::search {terms} {
 	set terms [regsub -all -- {\*} $terms "%"]
-	if {![dict exists $myquote::results $terms]} {
-		dict set myquote::results $terms [myquote::fetch_search $terms]
+	if {![dict exists $sqlquote::results $terms]} {
+		dict set sqlquote::results $terms [sqlquote::fetch_search $terms]
 	}
 
 	# Extract one quote from results
-	set quotes [dict get $myquote::results $terms]
+	set quotes [dict get $sqlquote::results $terms]
 	set quote [lindex $quotes 0]
 	set quotes [lreplace $quotes 0 0]
 
 	# Remove key if no quotes after removal of one, else update quotes
 	if {![llength $quotes]} {
-		dict unset myquote::results $terms
+		dict unset sqlquote::results $terms
 	} else {
-		dict set myquote::results $terms $quotes
+		dict set sqlquote::results $terms $quotes
 	}
 	return [list $quote [llength $quotes]]
 }
 
-proc myquote::addquote {nick host hand chan argv} {
+proc sqlquote::addquote {nick host hand chan argv} {
 	if {![channel get $chan quote]} { return }
 	if {$argv == ""} {
-		$myquote::output_cmd "PRIVMSG $chan :Usage: aq <text...>"
+		$sqlquote::output_cmd "PRIVMSG $chan :Usage: aq <text...>"
 		return
 	}
-	myquote::connect
+	sqlquote::connect
 
 	set argv [regsub -all -- {\\n} $argv \n]
-	set quote [mysql::escape $myquote::conn $argv]
+	set quote [mysql::escape $sqlquote::conn $argv]
 	set stmt "INSERT INTO quote (uid, quote) VALUES(1, \"${quote}\")"
-	set count [mysql::exec $myquote::conn $stmt]
-	$myquote::output_cmd "PRIVMSG $chan :${count} quote added."
+	set count [mysql::exec $sqlquote::conn $stmt]
+	$sqlquote::output_cmd "PRIVMSG $chan :${count} quote added."
 }
 
-proc myquote::delquote {nick host hand chan argv} {
+proc sqlquote::delquote {nick host hand chan argv} {
 	if {$argv == "" || ![string is integer $argv]} {
-		$myquote::output_cmd "PRIVMSG $chan :Usage: delquote <#>"
+		$sqlquote::output_cmd "PRIVMSG $chan :Usage: delquote <#>"
 		return
 	}
-	myquote::connect
+	sqlquote::connect
 	set stmt "DELETE FROM quote WHERE qid = ${argv}"
-	set count [mysql::exec $myquote::conn $stmt]
-	$myquote::output_cmd "PRIVMSG $chan :#${argv} deleted. ($count quotes affected.)"
+	set count [mysql::exec $sqlquote::conn $stmt]
+	$sqlquote::output_cmd "PRIVMSG $chan :#${argv} deleted. ($count quotes affected.)"
 }
 
 # quote is dict of form {qid ID quote TEXT}
-proc myquote::output {chan quote {left {}}} {
+proc sqlquote::output {chan quote {left {}}} {
 	if {$quote == ""} {
-		$myquote::output_cmd "PRIVMSG $chan :No quotes found."
+		$sqlquote::output_cmd "PRIVMSG $chan :No quotes found."
 		return
 	}
 	set qid [dict get $quote qid]
@@ -177,11 +177,11 @@ proc myquote::output {chan quote {left {}}} {
 	if {$left ne ""} {
 		set head "${head} ($left left)"
 	}
-	$myquote::output_cmd "PRIVMSG $chan :$head"
+	$sqlquote::output_cmd "PRIVMSG $chan :$head"
 	foreach l [split $text \n] {
-		$myquote::output_cmd "PRIVMSG $chan : $l"
+		$sqlquote::output_cmd "PRIVMSG $chan : $l"
 	}
 }
 
-myquote::connect
-putlog "myquote.tcl loaded"
+sqlquote::connect
+putlog "sqlquote.tcl loaded"
