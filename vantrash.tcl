@@ -15,6 +15,7 @@ namespace eval vantrash {
 	# where to output
 	set channel #newhell
 
+	# min hr day month year
 	bind time - {30 21 * * *} vantrash::check
 }
 
