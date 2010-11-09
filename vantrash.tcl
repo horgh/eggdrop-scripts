@@ -35,6 +35,8 @@ proc vantrash::check {min hour day month year} {
 		putserv "PRIVMSG $vantrash::channel :(vantrash) Date is cached"
 	}
 
+	putserv "PRIVMSG $vantrash::channel :(vantrash) min = $min, hour = $hour"
+
 	set next_day [string trim [clock format $vantrash::cached_date -format %e]]
 	set tomorrow_day [string trim [clock format [clock scan tomorrow] -format %e]]
 

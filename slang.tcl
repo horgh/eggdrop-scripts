@@ -32,7 +32,7 @@ namespace eval ud {
 	variable client "Mozilla/5.0 (compatible; Y!J; for robot study; keyoshid)"
 	variable url http://www.urbandictionary.com/define.php
 	variable list_regexp {<td class='text'.*? id='entry_.*?'>.*?</td>}
-	variable def_regexp {id='entry_(.*?)'>.*?<div class='definition'>(.*?)</div>}
+	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
 	setudef flag ud
 	bind pub -|- $ud::trigger ud::handler
