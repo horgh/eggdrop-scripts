@@ -13,7 +13,7 @@ namespace eval vantrash {
 	variable url "http://vantrash.ca/zones/${zone}/nextpickup.txt"
 
 	# where to output
-	variable channel #newhell
+	variable channel #tea
 
 	# min hr day month year
 	bind time - {30 21 * * *} vantrash::check
@@ -30,20 +30,13 @@ proc vantrash::check {min hour day month year} {
 
 		set next_date [lindex [split $data] 0]
 		set vantrash::cached_date [clock scan $next_date]
-		putserv "PRIVMSG $vantrash::channel :(vantrash) Got new date"
-	} else {
-		putserv "PRIVMSG $vantrash::channel :(vantrash) Date is cached"
 	}
-
-	putserv "PRIVMSG $vantrash::channel :(vantrash) min = $min, hour = $hour"
 
 	set next_day [string trim [clock format $vantrash::cached_date -format %e]]
 	set tomorrow_day [string trim [clock format [clock scan tomorrow] -format %e]]
 
 	if {$next_day == $tomorrow_day} {
 		putserv "PRIVMSG $vantrash::channel :Garbage day tomorrow!"
-	} else {
-		putserv "PRIVMSG $vantrash::channel :next_day $next_day tomorrow_day $tomorrow_day ."
 	}
 }
 
