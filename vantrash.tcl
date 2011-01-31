@@ -16,9 +16,17 @@ namespace eval vantrash {
 	variable channel #tea
 
 	# min hr day month year
+	bind time - {30 19 * * *} vantrash::check
+	bind time - {30 20 * * *} vantrash::check
 	bind time - {30 21 * * *} vantrash::check
 
+	bind pub -|- "!vantrash" vantrash::handler
+
 	variable cached_date []
+}
+
+proc vantrash::handler {nick uhost hand chan argv} {
+	vantrash::check * * * * *
 }
 
 proc vantrash::check {min hour day month year} {
@@ -26,7 +34,13 @@ proc vantrash::check {min hour day month year} {
 	if {$vantrash::cached_date == "" || [clock seconds] > $vantrash::cached_date} {
 		set token [http::geturl $vantrash::url]
 		set data [http::data $token]
+		set ncode [http::ncode $token]
 		http::cleanup $token
+
+		if {$ncode != 200} {
+			putserv "PRIVMSG $vantrash::channel :(vantrash) Error (${ncode}) fetching next pickup date. (Cached date is expired or not present): ${data}"
+			return
+		}
 
 		set next_date [lindex [split $data] 0]
 		set vantrash::cached_date [clock scan $next_date]
