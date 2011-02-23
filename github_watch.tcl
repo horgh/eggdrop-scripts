@@ -59,7 +59,8 @@ proc github_watch::output {commit} {
 	set msg [dict get $commit message]
 	set url "http://github.com[dict get $commit url]"
 
-	putserv "PRIVMSG $github_watch::channel :${committer_name}: ${msg} - ${url}"
+	#putserv "PRIVMSG $github_watch::channel :${committer_name}: ${msg} - ${url}"
+	putserv "PRIVMSG $github_watch::channel :\[\002${committer_name}\002\]: ${msg}"
 }
 
 proc github_watch::get_commits {} {
