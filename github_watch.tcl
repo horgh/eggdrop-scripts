@@ -100,7 +100,7 @@ proc github_watch::get_commits {} {
 
 proc github_watch::update {min hour day month year} {
 	if {[catch {github_watch::get_commits} result]} {
-		putserv "PRIVMSG $github_watch::channel :github watch: Error: $result"
+		putlog "PRIVMSG $github_watch::channel :github watch: Error: $result"
 		return
 	}
 
