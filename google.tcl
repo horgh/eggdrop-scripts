@@ -17,6 +17,8 @@
 #
 # Created Feb 28 2010
 #
+# License: Public domain
+#
 # Requires Tcl 8.5+
 # Requires tcllib for json
 #

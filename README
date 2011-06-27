@@ -10,3 +10,8 @@ wiki.tcl - wikipedia.org synopsis fetcher
 
 Edited versions of scripts written by others:
 imdb.tcl - IMDB.org query script. Written by B0unTy, modified by OV2
+
+
+Licenses:
+All scripts written by me in this repository are Public domain. Those
+not written by me are under whatever license specified by their authors.
