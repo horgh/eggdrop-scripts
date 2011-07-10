@@ -31,6 +31,9 @@ namespace eval ud {
 
 	variable client "Mozilla/5.0 (compatible; Y!J; for robot study; keyoshid)"
 	variable url http://www.urbandictionary.com/define.php
+	variable url_random http://www.urbandictionary.com/random.php
+
+	variable word_regexp {<td class='word'>(.*?)</td>}
 	variable list_regexp {<td class='text'.*? id='entry_.*?'>.*?</td>}
 	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
@@ -52,20 +55,31 @@ proc ud::handler {nick uhost hand chan argv} {
 		set number 1
 	}
 
+	if {[llength $argv] == 1 && [string is digit [lindex $argv 0]]} {
+		$ud::output_cmd "PRIVMSG $chan :Usage: slang \[#\] <query> (or just slang for random definition)"
+		return
+	}
+
 	if {$query == ""} {
-		$ud::output_cmd "PRIVMSG $chan :Usage: $ud::trigger \[#\] <definition to look up>"
-		return
+		if {[catch {ud::get_random} result]} {
+			$ud::output_cmd "PRIVMSG $chan :Error: $result"
+			return
+		}
+		ud::output $chan $result
+	} else {
+		if {[catch {ud::get_def $query $number} result]} {
+			$ud::output_cmd "PRIVMSG $chan :Error: $result"
+			return
+		}
+		ud::output $chan $result
 	}
+}
 
-	if {[catch {ud::fetch $query $number} result]} {
-		$ud::output_cmd "PRIVMSG $chan :Error: $result"
-		return
-	}
-
-	foreach line [ud::split_line $ud::line_length [dict get $result definition]] {
+proc ud::output {chan def_dict} {
+	foreach line [ud::split_line $ud::line_length [dict get $def_dict definition]] {
 		if {[incr output] > $ud::max_lines} {
 			if {$ud::show_truncate} {
-				$ud::output_cmd "PRIVMSG $chan :Output truncated. [ud::def_url $query $result]"
+				$ud::output_cmd "PRIVMSG $chan :Output truncated. [ud::def_url $def_dict]"
 			}
 			break
 		}
@@ -73,31 +87,60 @@ proc ud::handler {nick uhost hand chan argv} {
 	}
 }
 
-proc ud::fetch {query number} {
-	http::config -useragent $ud::client
+proc ud::get_random {} {
+	set result [ud::http_fetch $ud::url_random ""]
+	set word [dict get $result word]
+	set defs_html [dict get $result definitions]
+
+	if {[llength $defs_html] < 1} {
+		error "Failure finding random definition."
+	}
+
+	return [ud::parse $word [lindex $defs_html 0]]
+}
+
+proc ud::get_def {query number} {
 	set page [expr {int(ceil($number / 7.0))}]
 	set number [expr {$number - (($page - 1) * 7)}]
 
 	set http_query [http::formatQuery term $query page $page]
 
-	set token [http::geturl $ud::url -timeout 20000 -query $http_query]
+	set result [ud::http_fetch $ud::url $http_query]
+	set word [dict get $result word]
+	set defs_html [dict get $result definitions]
+
+	if {[llength $defs_html] < $number} {
+		error "[llength $defs_html] definitions found."
+	}
+
+	return [ud::parse $word [lindex $defs_html [expr {$number - 1}]]]
+}
+
+proc ud::http_fetch {url http_query} {
+	http::config -useragent $ud::client
+
+	set token [http::geturl $url -timeout 20000 -query $http_query]
 	set data [http::data $token]
 	set ncode [http::ncode $token]
+	set meta [http::meta $token]
 	http::cleanup $token
+
+	# Follow redirects
+	if {[regexp -- {30[01237]} $ncode]} {
+		set new_url [dict get $meta Location]
+		return [ud::http_fetch $new_url $http_query]
+	}
 
 	if {$ncode != 200} {
 		error "HTTP fetch error. Code: $ncode"
 	}
-
+	regexp -- $ud::word_regexp $data -> word
+	set word [string trim $word]
 	set definitions [regexp -all -inline -- $ud::list_regexp $data]
-	if {[llength $definitions] < $number} {
-		error "[llength $definitions] definitions found."
-	}
-
-	return [ud::parse $query [lindex $definitions [expr {$number - 1}]]]
+	return [list word $word definitions $definitions]
 }
 
-proc ud::parse {query raw_definition} {
+proc ud::parse {word raw_definition} {
 	if {![regexp $ud::def_regexp $raw_definition -> number definition]} {
 		error "Could not parse HTML"
 	}
@@ -105,11 +148,13 @@ proc ud::parse {query raw_definition} {
 	set definition [regsub -all -- {<.*?>} $definition ""]
 	set definition [regsub -all -- {\n+} $definition " "]
 	set definition [string tolower $definition]
-	return [list number $number definition "$query is $definition"]
+	return [list number $number word $word definition "$word is $definition"]
 }
 
-proc ud::def_url {query result} {
-	set raw_url ${ud::url}?[http::formatQuery term $query defid [dict get $result number]]
+proc ud::def_url {def_dict} {
+	set word [dict get $def_dict word]
+	set number [dict get $def_dict number]
+	set raw_url ${ud::url}?[http::formatQuery term $word defid $number]
 	if {$ud::isgd_disabled} {
 		return $raw_url
 	} else {
