@@ -33,7 +33,7 @@ proc wiki::fetch {term {url {}}} {
 	if {$url != ""} {
 		set token [http::geturl $url -timeout 10000]
 	} else {
-		set query [http::formatQuery $term]
+		set query [http::formatQuery [regsub -all -- {\s} $term "_"]]
 		set token [http::geturl ${wiki::url}${query} -timeout 10000]
 	}
 	set data [http::data $token]
