@@ -16,8 +16,9 @@ package require htmlparse
 
 namespace eval wiki {
 	variable max_lines 1
+	variable max_chars 400
 	variable output_cmd "putserv"
-	variable url "http://en.wikipedia.org/wiki/"
+	variable url "https://en.wikipedia.org/wiki/"
 
 	bind pub -|- "!w" wiki::search
 	bind pub -|- "!wiki" wiki::search
@@ -32,7 +33,7 @@ proc wiki::fetch {term {url {}}} {
 	if {$url != ""} {
 		set token [http::geturl $url -timeout 10000]
 	} else {
-		set query [http::formatQuery $term]
+		set query [http::formatQuery [regsub -all -- {\s} $term "_"]]
 		set token [http::geturl ${wiki::url}${query} -timeout 10000]
 	}
 	set data [http::data $token]
@@ -99,7 +100,7 @@ proc wiki::search {nick uhost hand chan argv} {
 		return
 	}
 
-	foreach line [wiki::split_line 400 [dict get $data result]] {
+	foreach line [wiki::split_line $wiki::max_chars [dict get $data result]] {
 		if {[incr count] > $wiki::max_lines} {
 			$wiki::output_cmd "PRIVMSG $chan :Output truncuated. [dict get $data url]"
 			break

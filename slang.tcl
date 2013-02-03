@@ -16,7 +16,7 @@ package require http
 
 namespace eval ud {
 	# set this to !ud or whatever you want
-	variable trigger "slang"
+	variable trigger ".ud"
 
 	# maximum lines to output
 	variable max_lines 1
@@ -56,7 +56,7 @@ proc ud::handler {nick uhost hand chan argv} {
 	}
 
 	if {[llength $argv] == 1 && [string is digit [lindex $argv 0]]} {
-		$ud::output_cmd "PRIVMSG $chan :Usage: slang \[#\] <query> (or just slang for random definition)"
+		$ud::output_cmd "PRIVMSG $chan :Usage: $ud::trigger \[#\] <query> (or just $ud::trigger for random definition)"
 		return
 	}
 
