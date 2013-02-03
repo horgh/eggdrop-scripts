@@ -18,7 +18,7 @@ namespace eval wiki {
 	variable max_lines 1
 	variable max_chars 400
 	variable output_cmd "putserv"
-	variable url "http://en.wikipedia.org/wiki/"
+	variable url "https://en.wikipedia.org/wiki/"
 
 	bind pub -|- "!w" wiki::search
 	bind pub -|- "!wiki" wiki::search
