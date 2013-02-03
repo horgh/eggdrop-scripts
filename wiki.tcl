@@ -16,6 +16,7 @@ package require htmlparse
 
 namespace eval wiki {
 	variable max_lines 1
+	variable max_chars 400
 	variable output_cmd "putserv"
 	variable url "http://en.wikipedia.org/wiki/"
 
@@ -99,7 +100,7 @@ proc wiki::search {nick uhost hand chan argv} {
 		return
 	}
 
-	foreach line [wiki::split_line 400 [dict get $data result]] {
+	foreach line [wiki::split_line $wiki::max_chars [dict get $data result]] {
 		if {[incr count] > $wiki::max_lines} {
 			$wiki::output_cmd "PRIVMSG $chan :Output truncuated. [dict get $data url]"
 			break
