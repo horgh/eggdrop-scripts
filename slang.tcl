@@ -33,7 +33,9 @@ namespace eval ud {
 	variable url http://www.urbandictionary.com/define.php
 	variable url_random http://www.urbandictionary.com/random.php
 
-	variable word_regexp {<td class='word'>\s*?<span>\s*?(.*?)\s*?</span>}
+	# regex to find the word 
+	# if we have an inexact match, then we may have the word wrapped in <a/>.
+	variable word_regexp {<td class='word'>\s*?<span>\s*(?:<a href=\"[^>]+\">)?(.*?)(?:</a>)?\s*?</span>}
 	variable list_regexp {<td class='text'.*? id='entry_.*?'>.*?</td>}
 	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
@@ -134,6 +136,8 @@ proc ud::http_fetch {url http_query} {
 	if {$ncode != 200} {
 		error "HTTP fetch error. Code: $ncode"
 	}
+
+	# pull out the word.
 	if {![regexp -- $ud::word_regexp $data -> word]} {
 		error "Failed to parse word"
 	}
