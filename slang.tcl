@@ -33,7 +33,7 @@ namespace eval ud {
 	variable url http://www.urbandictionary.com/define.php
 	variable url_random http://www.urbandictionary.com/random.php
 
-	variable word_regexp {<td class='word'>(.*?)</td>}
+	variable word_regexp {<td class='word'>\s*?<span>\s*?(.*?)\s*?</span>}
 	variable list_regexp {<td class='text'.*? id='entry_.*?'>.*?</td>}
 	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
@@ -134,9 +134,14 @@ proc ud::http_fetch {url http_query} {
 	if {$ncode != 200} {
 		error "HTTP fetch error. Code: $ncode"
 	}
-	regexp -- $ud::word_regexp $data -> word
+	if {![regexp -- $ud::word_regexp $data -> word]} {
+		error "Failed to parse word"
+	}
 	set word [string trim $word]
 	set definitions [regexp -all -inline -- $ud::list_regexp $data]
+	if {![llength $definitions]} {
+		error "No definitions found"
+	}
 	return [list word $word definitions $definitions]
 }
 
