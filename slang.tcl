@@ -35,7 +35,7 @@ namespace eval ud {
 
 	# regex to find the word 
 	# if we have an inexact match, then we may have the word wrapped in <a/>.
-	variable word_regexp {<td class='word'>\s*?<span>\s*(?:<a href=\"[^>]+\">)?(.*?)(?:</a>)?\s*?</span>}
+	variable word_regexp {<td class='word' data-defid='.*?'>\s*?<span>\s*(?:<a href=\"[^>]+\">)?(.*?)(?:</a>)?\s*?</span>}
 	variable list_regexp {<td class='text'.*? id='entry_.*?'>.*?</td>}
 	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
