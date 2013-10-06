@@ -35,8 +35,8 @@ namespace eval ud {
 
 	# regex to find the word 
 	# if we have an inexact match, then we may have the word wrapped in <a/>.
-	variable word_regexp {<td class='word' data-defid='.*?'>\s*?<span>\s*(?:<a href=\"[^>]+\">)?(.*?)(?:</a>)?\s*?</span>}
-	variable list_regexp {<td class='text'.*? id='entry_.*?'>.*?</td>}
+	variable word_regexp {<div class='word' data-defid='.*?'>\s*?(?:<a class="index".*?<\/a>\s*?)?<span>\s*(?:<a href=\"[^>]+\">)?(.*?)(?:</a>)?\s*?</span>}
+	variable list_regexp {<div class='text'.*? id='entry_.*?'>.*?</div>}
 	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
 	setudef flag ud
@@ -48,6 +48,7 @@ namespace eval ud {
 
 proc ud::handler {nick uhost hand chan argv} {
 	if {![channel get $chan ud]} { return }
+	set argv [string trim $argv]
 	set argv [split $argv]
 	if {[string is digit [lindex $argv 0]]} {
 		set number [lindex $argv 0]
@@ -56,6 +57,7 @@ proc ud::handler {nick uhost hand chan argv} {
 		set query [join $argv]
 		set number 1
 	}
+	set query [string trim $query]
 
 	if {[llength $argv] == 1 && [string is digit [lindex $argv 0]]} {
 		$ud::output_cmd "PRIVMSG $chan :Usage: $ud::trigger \[#\] <query> (or just $ud::trigger for random definition)"
