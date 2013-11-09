@@ -80,6 +80,7 @@ proc ud::handler {nick uhost hand chan argv} {
 }
 
 proc ud::output {chan def_dict} {
+	set output 0
 	foreach line [ud::split_line $ud::line_length [dict get $def_dict definition]] {
 		if {[incr output] > $ud::max_lines} {
 			if {$ud::show_truncate} {
