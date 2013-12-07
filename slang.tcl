@@ -14,7 +14,7 @@
 package require htmlparse
 package require http
 
-namespace eval ud {
+namespace eval ::ud {
 	# set this to !ud or whatever you want
 	variable trigger "slang"
 
@@ -40,13 +40,13 @@ namespace eval ud {
 	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
 	setudef flag ud
-	bind pub -|- $ud::trigger ud::handler
+	bind pub -|- $::ud::trigger ::ud::handler
 
 	# 0 if isgd package is present
 	variable isgd_disabled [catch {package require isgd}]
 }
 
-proc ud::handler {nick uhost hand chan argv} {
+proc ::ud::handler {nick uhost hand chan argv} {
 	if {![channel get $chan ud]} { return }
 	set argv [string trim $argv]
 	set argv [split $argv]
@@ -60,40 +60,40 @@ proc ud::handler {nick uhost hand chan argv} {
 	set query [string trim $query]
 
 	if {[llength $argv] == 1 && [string is digit [lindex $argv 0]]} {
-		$ud::output_cmd "PRIVMSG $chan :Usage: $ud::trigger \[#\] <query> (or just $ud::trigger for random definition)"
+		$::ud::output_cmd "PRIVMSG $chan :Usage: $::ud::trigger \[#\] <query> (or just $::ud::trigger for random definition)"
 		return
 	}
 
 	if {$query == ""} {
-		if {[catch {ud::get_random} result]} {
-			$ud::output_cmd "PRIVMSG $chan :Error: $result"
+		if {[catch {::ud::get_random} result]} {
+			$::ud::output_cmd "PRIVMSG $chan :Error: $result"
 			return
 		}
-		ud::output $chan $result
+		::ud::output $chan $result
 	} else {
-		if {[catch {ud::get_def $query $number} result]} {
-			$ud::output_cmd "PRIVMSG $chan :Error: $result"
+		if {[catch {::ud::get_def $query $number} result]} {
+			$::ud::output_cmd "PRIVMSG $chan :Error: $result"
 			return
 		}
-		ud::output $chan $result
+		::ud::output $chan $result
 	}
 }
 
-proc ud::output {chan def_dict} {
+proc ::ud::output {chan def_dict} {
 	set output 0
-	foreach line [ud::split_line $ud::line_length [dict get $def_dict definition]] {
-		if {[incr output] > $ud::max_lines} {
-			if {$ud::show_truncate} {
-				$ud::output_cmd "PRIVMSG $chan :Output truncated. [ud::def_url $def_dict]"
+	foreach line [::ud::split_line $::ud::line_length [dict get $def_dict definition]] {
+		if {[incr output] > $::ud::max_lines} {
+			if {$::ud::show_truncate} {
+				$::ud::output_cmd "PRIVMSG $chan :Output truncated. [::ud::def_url $def_dict]"
 			}
 			break
 		}
-		$ud::output_cmd "PRIVMSG $chan :$line"
+		$::ud::output_cmd "PRIVMSG $chan :$line"
 	}
 }
 
-proc ud::get_random {} {
-	set result [ud::http_fetch $ud::url_random ""]
+proc ::ud::get_random {} {
+	set result [::ud::http_fetch $::ud::url_random ""]
 	set word [dict get $result word]
 	set defs_html [dict get $result definitions]
 
@@ -101,16 +101,16 @@ proc ud::get_random {} {
 		error "Failure finding random definition."
 	}
 
-	return [ud::parse $word [lindex $defs_html 0]]
+	return [::ud::parse $word [lindex $defs_html 0]]
 }
 
-proc ud::get_def {query number} {
+proc ::ud::get_def {query number} {
 	set page [expr {int(ceil($number / 7.0))}]
 	set number [expr {$number - (($page - 1) * 7)}]
 
 	set http_query [http::formatQuery term $query page $page]
 
-	set result [ud::http_fetch $ud::url $http_query]
+	set result [::ud::http_fetch $::ud::url $http_query]
 	set word [dict get $result word]
 	set defs_html [dict get $result definitions]
 
@@ -118,11 +118,11 @@ proc ud::get_def {query number} {
 		error "[llength $defs_html] definitions found."
 	}
 
-	return [ud::parse $word [lindex $defs_html [expr {$number - 1}]]]
+	return [::ud::parse $word [lindex $defs_html [expr {$number - 1}]]]
 }
 
-proc ud::http_fetch {url http_query} {
-	http::config -useragent $ud::client
+proc ::ud::http_fetch {url http_query} {
+	http::config -useragent $::ud::client
 
 	set token [http::geturl $url -timeout 20000 -query $http_query]
 	set data [http::data $token]
@@ -133,7 +133,7 @@ proc ud::http_fetch {url http_query} {
 	# Follow redirects
 	if {[regexp -- {30[01237]} $ncode]} {
 		set new_url [dict get $meta Location]
-		return [ud::http_fetch $new_url $http_query]
+		return [::ud::http_fetch $new_url $http_query]
 	}
 
 	if {$ncode != 200} {
@@ -141,19 +141,19 @@ proc ud::http_fetch {url http_query} {
 	}
 
 	# pull out the word.
-	if {![regexp -- $ud::word_regexp $data -> word]} {
+	if {![regexp -- $::ud::word_regexp $data -> word]} {
 		error "Failed to parse word"
 	}
 	set word [string trim $word]
-	set definitions [regexp -all -inline -- $ud::list_regexp $data]
+	set definitions [regexp -all -inline -- $::ud::list_regexp $data]
 	if {![llength $definitions]} {
 		error "No definitions found"
 	}
 	return [list word $word definitions $definitions]
 }
 
-proc ud::parse {word raw_definition} {
-	if {![regexp $ud::def_regexp $raw_definition -> number definition]} {
+proc ::ud::parse {word raw_definition} {
+	if {![regexp $::ud::def_regexp $raw_definition -> number definition]} {
 		error "Could not parse HTML"
 	}
 	set definition [htmlparse::mapEscapes $definition]
@@ -163,11 +163,11 @@ proc ud::parse {word raw_definition} {
 	return [list number $number word $word definition "$word is $definition"]
 }
 
-proc ud::def_url {def_dict} {
+proc ::ud::def_url {def_dict} {
 	set word [dict get $def_dict word]
 	set number [dict get $def_dict number]
-	set raw_url ${ud::url}?[http::formatQuery term $word defid $number]
-	if {$ud::isgd_disabled} {
+	set raw_url ${::ud::url}?[http::formatQuery term $word defid $number]
+	if {$::ud::isgd_disabled} {
 		return $raw_url
 	} else {
 		if {[catch {isgd::shorten $raw_url} shortened]} {
@@ -179,7 +179,7 @@ proc ud::def_url {def_dict} {
 }
 
 # by fedex
-proc ud::split_line {max str} {
+proc ::ud::split_line {max str} {
 	set last [expr {[string length $str] -1}]
 	set start 0
 	set end [expr {$max -1}]
