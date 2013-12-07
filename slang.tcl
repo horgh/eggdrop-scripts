@@ -27,6 +27,18 @@ namespace eval ::ud {
 	# show truncated message / url if more than one line
 	variable show_truncate 1
 
+	# toggle whether we store raw response data.
+	# this will store the response from an http request to urbandictionary.com
+	# in files for debugging.
+	# NOTE: enabling this will cause a file to be created for every request
+	#   the script makes, so these can pile up quickly!
+	variable store_responses 0
+	# the directory to store responses if store_responses is on.
+	# this is under your eggdrop directory.
+	# files under this directory will be named with unix timestamps
+	# (microseconds).
+	variable store_responses_dir slang_responses
+
 	variable output_cmd "putserv"
 
 	variable client "Mozilla/5.0 (compatible; Y!J; for robot study; keyoshid)"
@@ -44,6 +56,14 @@ namespace eval ::ud {
 
 	# 0 if isgd package is present
 	variable isgd_disabled [catch {package require isgd}]
+}
+
+# write a console log message.
+proc ::ud::log {msg} {
+	if {[string length $msg] == 0} {
+		return
+	}
+	putlog "slang.tcl $msg"
 }
 
 proc ::ud::handler {nick uhost hand chan argv} {
@@ -65,12 +85,14 @@ proc ::ud::handler {nick uhost hand chan argv} {
 	}
 
 	if {$query == ""} {
+		::ud::log "Performing random query..."
 		if {[catch {::ud::get_random} result]} {
 			$::ud::output_cmd "PRIVMSG $chan :Error: $result"
 			return
 		}
 		::ud::output $chan $result
 	} else {
+		::ud::log "Fetching definition $number of $query..."
 		if {[catch {::ud::get_def $query $number} result]} {
 			$::ud::output_cmd "PRIVMSG $chan :Error: $result"
 			return
@@ -121,6 +143,29 @@ proc ::ud::get_def {query number} {
 	return [::ud::parse $word [lindex $defs_html [expr {$number - 1}]]]
 }
 
+# store an http request response (if enabled).
+proc ::ud::store_response {data} {
+	if {!$::ud::store_responses} {
+		return
+	}
+
+	# ensure the directory to store the responses exists.
+	if {![file isdirectory $::ud::store_responses_dir]} {
+		# mkdir raises an error if it fails.
+		file mkdir $::ud::store_responses_dir
+	}
+
+	# make the filename that we will store to.
+	set base [clock microseconds]
+	set path [file join $::ud::store_responses_dir $base]
+
+	# write out the response
+	set f [open $path w]
+	puts -nonewline $f $data
+	close $f
+	::ud::log "stored response to $path"
+}
+
 proc ::ud::http_fetch {url http_query} {
 	http::config -useragent $::ud::client
 
@@ -140,6 +185,30 @@ proc ::ud::http_fetch {url http_query} {
 		error "HTTP fetch error. Code: $ncode"
 	}
 
+	# we may be storing responses for debugging.
+	if {[catch {::ud::store_response $data} result]} {
+		putlog "Problem storing response: $result"
+	}
+
+	return [::ud::parse_word_and_definitions $data]
+}
+
+# parse a response from a file.
+# this is primarily for debugging purposes. we can pass this function
+# a stored response file to try to parse it.
+proc ::ud::parse_response_file {path} {
+	set f [open $path]
+	set data [read -nonewline $f]
+	close $f
+
+	return [::ud::parse_word_and_definitions $data]
+}
+
+# first pass parsing - we pull out the word and the definitions from
+# the page.
+# we return a dictionary with keys 'word' and 'definitions' on success.
+# on failure, we raise an error.
+proc ::ud::parse_word_and_definitions {data} {
 	# pull out the word.
 	if {![regexp -- $::ud::word_regexp $data -> word]} {
 		error "Failed to parse word"
