@@ -48,7 +48,7 @@ namespace eval ::ud {
 	# regex to find the word 
 	# if we have an inexact match, then we may have the word wrapped in <a/>.
 	variable word_regexp {<div class='word' data-defid='.*?'>\s*?(?:<a class="index".*?<\/a>\s*?)?<span>\s*(?:<a href=\"[^>]+\">)?(.*?)(?:</a>)?\s*?</span>}
-	variable list_regexp {<div class='text'.*? id='entry_.*?'>.*?</div>}
+	variable list_regexp {<div class='text'.*? id='entry_.*?'>.*?<div class="definition">.*?</div>}
 	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
 
 	setudef flag ud
@@ -223,7 +223,7 @@ proc ::ud::parse_word_and_definitions {data} {
 
 proc ::ud::parse {word raw_definition} {
 	if {![regexp $::ud::def_regexp $raw_definition -> number definition]} {
-		error "Could not parse HTML"
+		error "Could not parse definition's HTML"
 	}
 	set definition [htmlparse::mapEscapes $definition]
 	set definition [regsub -all -- {<.*?>} $definition ""]
