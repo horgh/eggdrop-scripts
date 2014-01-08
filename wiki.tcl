@@ -20,8 +20,7 @@ namespace eval wiki {
 	variable output_cmd "putserv"
 	variable url "https://en.wikipedia.org/wiki/"
 
-	bind pub -|- "!w" wiki::search
-	bind pub -|- "!wiki" wiki::search
+	bind pub -|- ".wiki" wiki::search
 
 #	variable parse_regexp {(<table class.*?<p>.*?</p>.*?</table>)??.*?<p>(.*?)</p>\n<table id="toc"}
 	variable parse_regexp {(?:</table>)?.*?<p>(.*)((</ul>)|(</p>)).*?((<table id="toc")|(<h2>)|(<table id="disambigbox"))}
