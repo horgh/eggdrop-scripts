@@ -46,10 +46,9 @@ namespace eval ::ud {
 	variable url_random http://www.urbandictionary.com/random.php
 
 	# regex to find the word 
-	# if we have an inexact match, then we may have the word wrapped in <a/>.
-	variable word_regexp {<div class='word' data-defid='.*?'>\s*?(?:<a class="index".*?<\/a>\s*?)?<span>\s*(?:<a href=\"[^>]+\">)?(.*?)(?:</a>)?\s*?</span>}
-	variable list_regexp {<div class='text'.*? id='entry_.*?'>.*?<div class="definition">.*?</div>}
-	variable def_regexp {id='entry_(.*?)'>.*?<div class="definition">(.*?)</div>}
+	variable word_regex {<div class='word'>\s*<a href[^>]*?>([^<]*?)</a>\s*</div>\s*<div class='definition'>}
+	variable list_regex {<div class='box'.*? data-defid='[0-9]+'>.*?<div class='footer'>}
+	variable def_regex {<div class='box'.*? data-defid='([0-9]+)'>.*?<div class='definition'>(.*?)</div>}
 
 	setudef flag ud
 	bind pub -|- $::ud::trigger ::ud::handler
@@ -210,11 +209,11 @@ proc ::ud::parse_response_file {path} {
 # on failure, we raise an error.
 proc ::ud::parse_word_and_definitions {data} {
 	# pull out the word.
-	if {![regexp -- $::ud::word_regexp $data -> word]} {
+	if {![regexp -- $::ud::word_regex $data -> word]} {
 		error "Failed to parse word"
 	}
 	set word [string trim $word]
-	set definitions [regexp -all -inline -- $::ud::list_regexp $data]
+	set definitions [regexp -all -inline -- $::ud::list_regex $data]
 	if {![llength $definitions]} {
 		error "No definitions found"
 	}
@@ -222,13 +221,14 @@ proc ::ud::parse_word_and_definitions {data} {
 }
 
 proc ::ud::parse {word raw_definition} {
-	if {![regexp $::ud::def_regexp $raw_definition -> number definition]} {
+	if {![regexp $::ud::def_regex $raw_definition -> number definition]} {
 		error "Could not parse definition's HTML"
 	}
 	set definition [htmlparse::mapEscapes $definition]
 	set definition [regsub -all -- {<.*?>} $definition ""]
 	set definition [regsub -all -- {\n+} $definition " "]
 	set definition [string tolower $definition]
+	set definition [string trim $definition]
 	return [list number $number word $word definition "$word is $definition"]
 }
 
