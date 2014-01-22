@@ -16,13 +16,13 @@ package require http
 
 namespace eval ::ud {
 	# set this to !ud or whatever you want
-	variable trigger ".ud"
+	variable trigger "slang"
 
 	# maximum lines to output
 	variable max_lines 1
 
 	# approximate characters per line
-	variable line_length 300
+	variable line_length 400
 
 	# show truncated message / url if more than one line
 	variable show_truncate 1
