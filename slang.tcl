@@ -227,7 +227,6 @@ proc ::ud::parse {word raw_definition} {
 	set definition [htmlparse::mapEscapes $definition]
 	set definition [regsub -all -- {<.*?>} $definition ""]
 	set definition [regsub -all -- {\n+} $definition " "]
-	set definition [string tolower $definition]
 	set definition [string trim $definition]
 	return [list number $number word $word definition "\002$word\002: $definition"]
 }
