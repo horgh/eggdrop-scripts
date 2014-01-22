@@ -16,7 +16,7 @@ package require http
 
 namespace eval ::ud {
 	# set this to !ud or whatever you want
-	variable trigger "slang"
+	variable trigger ".ud"
 
 	# maximum lines to output
 	variable max_lines 1
