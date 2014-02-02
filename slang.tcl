@@ -46,9 +46,9 @@ namespace eval ::ud {
 	variable url_random http://www.urbandictionary.com/random.php
 
 	# regex to find the word 
-	variable word_regex {<div class='word'>\s*<a href[^>]*?>([^<]*?)</a>\s*</div>\s*<div class='definition'>}
+	variable word_regex {<div class='word'>\s*<a href[^>]*?>([^<]*?)</a>\s*</div>\s*<div class='meaning'>}
 	variable list_regex {<div class='box'.*? data-defid='[0-9]+'>.*?<div class='footer'>}
-	variable def_regex {<div class='box'.*? data-defid='([0-9]+)'>.*?<div class='definition'>(.*?)</div>}
+	variable def_regex {<div class='box'.*? data-defid='([0-9]+)'>.*?<div class='meaning'>(.*?)</div>}
 
 	setudef flag ud
 	bind pub -|- $::ud::trigger ::ud::handler
