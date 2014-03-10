@@ -46,7 +46,7 @@ namespace eval ::ud {
 	variable url_random http://www.urbandictionary.com/random.php
 
 	# regex to find the word 
-	variable word_regex {<div class='word'>\s*<a href[^>]*?>([^<]*?)</a>\s*</div>\s*<div class='meaning'>}
+	variable word_regex {<div class='word'>\s*<a href[^>]*?>([^<]*?)</a>.*?*<div class='meaning'>}
 	variable list_regex {<div class='box'.*? data-defid='[0-9]+'>.*?<div class='footer'>}
 	variable def_regex {<div class='box'.*? data-defid='([0-9]+)'>.*?<div class='meaning'>(.*?)</div>}
 
@@ -227,9 +227,8 @@ proc ::ud::parse {word raw_definition} {
 	set definition [htmlparse::mapEscapes $definition]
 	set definition [regsub -all -- {<.*?>} $definition ""]
 	set definition [regsub -all -- {\n+} $definition " "]
-	set definition [string tolower $definition]
 	set definition [string trim $definition]
-	return [list number $number word $word definition "$word is $definition"]
+	return [list number $number word $word definition "\002$word\002: $definition"]
 }
 
 proc ::ud::def_url {def_dict} {
