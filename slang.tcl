@@ -45,10 +45,10 @@ namespace eval ::ud {
 	variable url http://www.urbandictionary.com/define.php
 	variable url_random http://www.urbandictionary.com/random.php
 
-	# regex to find the word 
-	variable word_regex {<div class='word'>\s*<a href[^>]*?>([^<]*?)</a>\s*</div>\s*<div class='meaning'>}
-	variable list_regex {<div class='box'.*? data-defid='[0-9]+'>.*?<div class='footer'>}
-	variable def_regex {<div class='box'.*? data-defid='([0-9]+)'>.*?<div class='meaning'>(.*?)</div>}
+	# regex to find the word
+	variable word_regex {<a class="word" href=.*?>(.*?)</a>}
+	variable list_regex {<div class='box' data-defid='[0-9]+?'>.*?<div class='def-footer'>}
+	variable def_regex {<div class='box' data-defid='([0-9]+?)'>.*?<div class='meaning'>(.*?)</div>}
 
 	setudef flag ud
 	bind pub -|- $::ud::trigger ::ud::handler
@@ -210,11 +210,12 @@ proc ::ud::parse_response_file {path} {
 proc ::ud::parse_word_and_definitions {data} {
 	# pull out the word.
 	if {![regexp -- $::ud::word_regex $data -> word]} {
-		error "Failed to parse word"
+		error "Word not found. No definitions or parsing problem!"
 	}
 	set word [string trim $word]
 	set definitions [regexp -all -inline -- $::ud::list_regex $data]
-	if {![llength $definitions]} {
+	set definition_count [llength $definitions]
+	if {$definition_count == 0} {
 		error "No definitions found"
 	}
 	return [list word $word definitions $definitions]
