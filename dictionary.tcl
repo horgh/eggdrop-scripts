@@ -72,14 +72,11 @@ namespace eval dictionary {
   # this is for throttling term outputs.
   variable flood [dict create]
 
-  # Binds
   bind pubm -|- "*"          ::[namespace current]::public
   bind pubm -|- "*"          ::[namespace current]::publearn
   bind evnt -|- "save"       ::[namespace current]::save
 
-  # Miscellaneous
   setudef flag dictionary
-  namespace export *
 }
 
 # respond to terms in the channel
@@ -107,19 +104,25 @@ proc ::dictionary::public {nick host hand chan argv} {
   }
 
   # look for a word we know about.
+  set term ""
   foreach word [dict keys $terms] {
-    if {[string match -nocase "* $word *" $argv] \
-      || [string match -nocase "$word *" $argv] \
-      || [string match -nocase "* $word" $argv] \
-      || [string match -nocase "$word" $argv]} \
-    {
+    if {[::dictionary::string_contains_term $argv $word]} {
      set term $word
      break
     }
   }
-  if {![info exists term]} {
+
+  if {$term == ""} {
+    # They didn't say a term we know something about. In this case the only
+    # response we'll send is if they said our name. Send them a chatty response
+    # if so.
+    if {[::dictionary::string_contains_term $argv $botnick]} {
+      set response [::dictionary::get_chatty_response $nick]
+      putserv "PRIVMSG $chan :$response"
+    }
     return
   }
+
   set term_dict [dict get $terms $term]
 
   # check if we've responded to the word recently so we don't
@@ -180,12 +183,14 @@ proc ::dictionary::publearn {nick host hand chan argv} {
       set include_term_in_def 0
       set description "[string range $argv [expr [string first "," $argv] + 2] end]"
     }
+
     if {[dict exists $terms $term]} {
       set term_dict [dict get $terms $term]
       set def [dict get $term_dict def]
       putserv "PRIVMSG $chan :$term is already $def"
       return
     }
+
     set term [string trim $term]
     set description [string trim $description]
     if {[string length $term] == 0 || [string length $description] == 0} {
@@ -231,6 +236,38 @@ proc ::dictionary::publearn {nick host hand chan argv} {
   # unknown command. send a random chatty response.
   set response [::dictionary::get_chatty_response $nick]
   putserv "PRIVMSG $chan :$response"
+}
+
+# Return 1 if the string contains the term. This is tested case insensitively.
+#
+# The term is present only if it is by itself surrounded whitespace or
+# punctuation.
+#
+# e.g. if the term is 'test' then these strings contain it:
+#
+# hi test hi
+# hi test, hi
+# test
+#
+# But these do not:
+#
+# hi testing hi
+# hitest
+proc ::dictionary::string_contains_term {s term} {
+  set term_lc [string tolower $term]
+
+  set term_quoted [::dictionary::quotemeta $term_lc]
+
+  # \m matches at the beginning of a word, \M at the end.
+  return [regexp -nocase -- \\m$term_quoted\\M $s]
+}
+
+# Escape/quote metacharacters so that the string becomes suitable for placing in
+# a regular expression. This makes it so any regex metacharacter is quoted.
+#
+# See http://stackoverflow.com/questions/4346750/regular-expression-literal-text-span/4352893#4352893
+proc ::dictionary::quotemeta {s} {
+  return [regsub -all {\W} $s {\\&}]
 }
 
 proc ::dictionary::get_random_response {responses nick} {
