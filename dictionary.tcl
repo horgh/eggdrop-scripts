@@ -91,9 +91,9 @@ proc ::dictionary::public {nick host hand chan argv} {
     return
   }
 
-  # Ignore cases of '<mynick>:' because those are commands to us. We deal with
+  # Ignore cases of '<botnick>:' because those are commands to us. We deal with
   # them in a different proc.
-  if {[lindex [split $argv] 0] == "$botnick:"} {
+  if {[::dictionary::is_addressing_bot $argv $botnick]} {
     return
   }
 
@@ -150,8 +150,8 @@ proc ::dictionary::public {nick host hand chan argv} {
   puthelp "PRIVMSG $chan :$def"
 }
 
-# public trigger. this handles interaction to set/clear terms
-# and for responding directly by the bot.
+# Public trigger. This handles commands such as setting, deleting, and listing
+# terms the bot knows about.
 proc ::dictionary::publearn {nick host hand chan argv} {
   global botnick
   variable terms
@@ -161,15 +161,17 @@ proc ::dictionary::publearn {nick host hand chan argv} {
   }
   set argv [stripcodes "uacgbr" $argv]
 
-  # we only respond to the case where the message starts
-  # with '<botnick>:'
-  if {[lindex [split $argv] 0] != "$botnick:"} {
+  # We only respond if we are directly addressed (botnick: ). This indicates
+  # someone is giving us a command.
+  if {![::dictionary::is_addressing_bot $argv $botnick]} {
     return
   }
 
-  # try to set a term.
-  # this can be done by: <botnick>: <term> is <definition>
-  # and: <botnick>: <term>, <definition>
+  # Try to set a term.
+  #
+  # This can be done by: <botnick>: <term> is <definition>
+  #
+  # Or: <botnick>: <term>, <definition>
   if {([lsearch $argv "is"] >= 0 && [llength $argv] >= 4) \
     || ([string first "," $argv]>-1 && [llength $argv] >= 3)} \
   {
@@ -201,7 +203,7 @@ proc ::dictionary::publearn {nick host hand chan argv} {
       return
     }
 
-    # set it, and send a random success response.
+    # Set it, and send a random success response.
     set term_dict [dict create]
     dict set term_dict def $description
     dict set term_dict include_term_in_def $include_term_in_def
@@ -211,7 +213,7 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     return
   }
 
-  # delete a term. <botnick>: forget <term>
+  # Delete a term. <botnick>: forget <term>
   if {[lindex [split $argv] 1] == "forget" && [llength $argv] >= 3} {
     set term [lrange [split $argv] 2 end]
     # if it does not exist, then send a random deny response.
@@ -225,7 +227,7 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     return
   }
 
-  # message the nick all terms we have
+  # Message the nick all terms we have
   if {[lindex [split $argv] 1] == "listem" && [llength $argv] == 2} {
     foreach term [lsort -dictionary [dict keys $terms]] {
       set term_dict [dict get $terms $term]
@@ -235,9 +237,30 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     return
   }
 
-  # unknown command. send a random chatty response.
+  # Unknown command. send a random chatty response.
   set response [::dictionary::get_chatty_response $nick]
   putserv "PRIVMSG $chan :$response"
+}
+
+# Return 1 if the given line is addressing the bot.
+#
+# This is the case if the line is of the form:
+# <botnick>:
+#
+# For example if the bot's nick is:
+# bot: Hi there
+#
+# This is checked case insensitively.
+proc ::dictionary::is_addressing_bot {text botnick} {
+  set text [string trim $text]
+  set text [string tolower $text]
+
+  set prefix [string tolower $botnick]
+  append prefix :
+
+  set idx [string first $prefix $text]
+
+  return [expr $idx == 0]
 }
 
 # Return 1 if the string contains the term. This is tested case insensitively.
