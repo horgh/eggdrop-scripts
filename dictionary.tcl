@@ -91,19 +91,20 @@ proc ::dictionary::public {nick host hand chan argv} {
     return
   }
 
-  # ignore cases of '<mynick>:' because those are commands to us.
+  # Ignore cases of '<mynick>:' because those are commands to us. We deal with
+  # them in a different proc.
   if {[lindex [split $argv] 0] == "$botnick:"} {
     return
   }
 
-  # if the nick is one to skip, then get out now.
+  # If the person saying something has a nick that is one we skip, we're done.
   foreach skip_nick $skip_nicks {
     if {[string equal -nocase $nick $skip_nick]} {
       return
     }
   }
 
-  # look for a word we know about.
+  # Look for a word we know about for us to respond to.
   set term ""
   foreach word [dict keys $terms] {
     if {[::dictionary::string_contains_term $argv $word]} {
@@ -112,10 +113,9 @@ proc ::dictionary::public {nick host hand chan argv} {
     }
   }
 
+  # If they didn't say a term we know something about, then the only response
+  # we'll send is if they said our name. Send them a chatty response if so.
   if {$term == ""} {
-    # They didn't say a term we know something about. In this case the only
-    # response we'll send is if they said our name. Send them a chatty response
-    # if so.
     if {[::dictionary::string_contains_term $argv $botnick]} {
       set response [::dictionary::get_chatty_response $nick]
       putserv "PRIVMSG $chan :$response"
@@ -123,10 +123,12 @@ proc ::dictionary::public {nick host hand chan argv} {
     return
   }
 
+  # They said a word we know something about. We'll potentially output the
+  # definition.
+
   set term_dict [dict get $terms $term]
 
-  # check if we've responded to the word recently so we don't
-  # keep saying it.
+  # We throttle how often we output the term's definition.
   set flood_key $chan$term
   if {![dict exists $flood $flood_key]} {
     dict set flood $flood_key 0
@@ -137,10 +139,10 @@ proc ::dictionary::public {nick host hand chan argv} {
   }
   dict set flood $flood_key [unixtime]
 
-  # output the def.
+  # Output the definition. Note that terms get output differently depending on
+  # how they were added.
   set def [dict get $term_dict def]
-  # terms get output differently depending on how they were
-  # added.
+
   if {[dict get $term_dict include_term_in_def]} {
     puthelp "PRIVMSG $chan :$term is $def"
     return
