@@ -1,4 +1,7 @@
 #
+# edited Jun 27 2017 for https by genewitch
+# ramok on freenode/#tcl knew the fix
+#
 # Mar 30 2010
 # by horgh
 #
@@ -13,6 +16,9 @@
 
 package require http
 package require htmlparse
+package require tls
+::http::register https 443 ::tls::socket
+
 
 namespace eval wiki {
 	variable max_lines 1
@@ -28,6 +34,7 @@ namespace eval wiki {
 
 	setudef flag wiki
 }
+
 
 proc wiki::fetch {term {url {}}} {
 	if {$url != ""} {
