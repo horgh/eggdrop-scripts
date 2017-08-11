@@ -119,7 +119,7 @@ proc ::wds::output {chan geonames darksky} {
 	append output ")"
 
 	append output " \002Humidity\002: "
-	append output [expr [dict get $darksky humidity]*100]
+	append output [::wds::format_decimal [expr [dict get $darksky humidity]*100]]
 	append output "%"
 
 	append output " \002Pressure\002: "
@@ -133,7 +133,7 @@ proc ::wds::output {chan geonames darksky} {
 	append output "m/s"
 
 	append output " \002Clouds\002: "
-	append output [expr [dict get $darksky cloudCover]*100]
+	append output [::wds::format_decimal [expr [dict get $darksky cloudCover]*100]]
 	append output "%"
 	$::wds::output_cmd "PRIVMSG $chan :$output"
 }
