@@ -11,7 +11,8 @@
 # - You'll need to source both of those .tcl files in your bot prior to this
 #   one.
 # - Partyline: .chanset #channel +weather-darksky
-# - Channel: .wz <location>
+# - Channel: .wz <location> for current weather or .wzf <location> for a
+#   forecast
 
 package require darksky
 package require geonames
@@ -20,7 +21,7 @@ namespace eval ::wds {
 	variable output_cmd putserv
 }
 
-proc ::wds::lookup {nick uhost hand chan argv} {
+proc ::wds::lookup_current {nick uhost hand chan argv} {
 	if {![channel get $chan weather-darksky]} { return }
 
 	set query [string trim $argv]
@@ -29,13 +30,43 @@ proc ::wds::lookup {nick uhost hand chan argv} {
 		return
 	}
 
+	set data [::wds::get_data $chan $query]
+	if {![dict exists $data geonames] || ![dict exists $data darksky]} {
+		return
+	}
+	set geonames [dict get $data geonames]
+	set darksky [dict get $data darksky]
+
+	::wds::output_current $chan $geonames $darksky
+}
+
+proc ::wds::lookup_forecast {nick uhost hand chan argv} {
+	if {![channel get $chan weather-darksky]} { return }
+
+	set query [string trim $argv]
+	if {$query == ""} {
+		$::wds::output_cmd "PRIVMSG $chan :Usage: .wzf <location>"
+		return
+	}
+
+	set data [::wds::get_data $chan $query]
+	if {![dict exists $data geonames] || ![dict exists $data darksky]} {
+		return
+	}
+	set geonames [dict get $data geonames]
+	set darksky [dict get $data darksky]
+
+	::wds::output_forecast $chan $geonames $darksky
+}
+
+proc ::wds::get_data {chan query} {
 	set conf [::wds::load_config]
 
 	set geonames [::geonames::new [dict get $conf geonames_username]]
 	set geonames_result [::geonames::latlong $geonames $query]
 	if {[dict exists $geonames_result error]} {
 		$::wds::output_cmd "PRIVMSG $chan :Error looking up latitude/longitude: [dict get $geonames_result error]"
-		return
+		return [dict create]
 	}
 
 	set darksky [::darksky::new [dict get $conf darksky_key]]
@@ -43,10 +74,10 @@ proc ::wds::lookup {nick uhost hand chan argv} {
 		[dict get $geonames_result lat] [dict get $geonames_result lng]]
 	if {[dict exists $darksky_result error]} {
 		$::wds::output_cmd "PRIVMSG $chan :Error looking up forecast: [dict get $darksky_result error]"
-		return
+		return [dict create]
 	}
 
-	::wds::output $chan $geonames_result $darksky_result
+	return [dict create geonames $geonames_result darksky $darksky_result]
 }
 
 proc ::wds::load_config {} {
@@ -92,7 +123,7 @@ proc ::wds::load_config {} {
 	return $conf
 }
 
-proc ::wds::output {chan geonames darksky} {
+proc ::wds::output_current {chan geonames darksky} {
 	set output ""
 	append output [dict get $geonames name]
 	append output ", "
@@ -133,8 +164,57 @@ proc ::wds::output {chan geonames darksky} {
 	append output "m/s"
 
 	append output " \002Clouds\002: "
-	append output [::wds::format_decimal [expr [dict get $darksky cloudCover]*100]]
+	append output [::wds::format_decimal \
+		[expr [dict get $darksky cloudCover]*100] \
+	]
 	append output "%"
+	$::wds::output_cmd "PRIVMSG $chan :$output"
+}
+
+proc ::wds::output_forecast {chan geonames darksky} {
+	set output ""
+	append output [dict get $geonames name]
+	append output ", "
+	append output [dict get $geonames countryName]
+
+	append output " ("
+	append output [::wds::format_decimal [dict get $darksky latitude]]
+	append output "°N/"
+	append output [::wds::format_decimal [dict get $darksky longitude]]
+	append output "°W) "
+	$::wds::output_cmd "PRIVMSG $chan :$output"
+
+	set output ""
+	set count 0
+	foreach forecast [dict get $darksky forecast] {
+		if {$count == 5} {
+			break
+		}
+		if {$output != ""} {
+			append output " "
+		}
+		set day [clock format [dict get $forecast time] -format "%A"]
+		append output "\002$day\002: "
+		append output [dict get $forecast summary]
+		append output " "
+
+		append output [dict get $forecast temperatureMax]
+		append output "/"
+		append output [dict get $forecast temperatureMin]
+		append output "°C"
+
+		append output " ("
+		append output [::wds::celsius_to_fahrenheit \
+			[dict get $forecast temperatureMax] \
+		]
+		append output "/"
+		append output [::wds::celsius_to_fahrenheit \
+			[dict get $forecast temperatureMin] \
+		]
+		append output "°F"
+		append output ")"
+		incr count
+	}
 	$::wds::output_cmd "PRIVMSG $chan :$output"
 }
 
@@ -148,7 +228,8 @@ proc ::wds::format_decimal {number} {
 }
 
 setudef flag weather-darksky
-bind pub -|- .wz ::wds::lookup
+bind pub -|- .wz ::wds::lookup_current
+bind pub -|- .wzf ::wds::lookup_forecast
 
 putlog "weather-darksky.tcl (https://github.com/horgh/eggdrop-scripts/weather-darksky.tcl) loaded"
 putlog "weather-darksky.tcl: Powered by Dark Sky (www.darksky.net)"
