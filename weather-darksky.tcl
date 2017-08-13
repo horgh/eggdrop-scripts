@@ -24,7 +24,7 @@ namespace eval ::wds {
 proc ::wds::lookup_current {nick uhost hand chan argv} {
 	if {![channel get $chan weather-darksky]} { return }
 
-	set query [string trim $argv]
+	set query [::wds::get_query $nick $uhost $argv]
 	if {$query == ""} {
 		$::wds::output_cmd "PRIVMSG $chan :Usage: .wz <location>"
 		return
@@ -43,7 +43,7 @@ proc ::wds::lookup_current {nick uhost hand chan argv} {
 proc ::wds::lookup_forecast {nick uhost hand chan argv} {
 	if {![channel get $chan weather-darksky]} { return }
 
-	set query [string trim $argv]
+	set query [::wds::get_query $nick $uhost $argv]
 	if {$query == ""} {
 		$::wds::output_cmd "PRIVMSG $chan :Usage: .wzf <location>"
 		return
@@ -57,6 +57,41 @@ proc ::wds::lookup_forecast {nick uhost hand chan argv} {
 	set darksky [dict get $data darksky]
 
 	::wds::output_forecast $chan $geonames $darksky
+}
+
+# Retrieve the query to look up. If none is given, return the last one we used.
+# If one was given, remember it.
+#
+# We only remember it if there is a matching user record. In theory we could add
+# users but in order to do that we must have a handle to assign them, and what
+# to use is unclear. I suppose we could generate something random.
+proc ::wds::get_query {nick uhost argv} {
+	set query [string trim $argv]
+	if {$query != ""} {
+		::wds::set_default_location $nick $uhost $query
+		return $query
+	}
+
+	return [::wds::get_default_location $nick $uhost]
+}
+
+proc ::wds::set_default_location {nick uhost query} {
+	set hand [finduser $nick!$uhost]
+	if {$hand == "*"} {
+		return
+	}
+
+	setuser $hand XTRA weather-darksky $query
+}
+
+proc ::wds::get_default_location {nick uhost} {
+	set hand [finduser $nick!$uhost]
+	if {$hand == "*"} {
+		return ""
+	}
+
+	set location [getuser $hand XTRA weather-darksky]
+	return $location
 }
 
 proc ::wds::get_data {chan query} {
