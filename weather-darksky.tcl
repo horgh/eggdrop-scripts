@@ -98,7 +98,18 @@ proc ::wds::get_data {chan query} {
 	set conf [::wds::load_config]
 
 	set geonames [::geonames::new [dict get $conf geonames_username]]
-	set geonames_result [::geonames::latlong $geonames $query]
+
+	set geonames_result {}
+
+	# If the user gave us what looks like a US zip code, use the postal code
+	# search API rather than the text search API. The text search API gives
+	# unreliable results using zip codes alone.
+	if {[regexp -- {\A[0-9]{5}\Z} $query]} {
+		set geonames_result [::geonames::postalcode_latlong $geonames $query US]
+	} else {
+		set geonames_result [::geonames::search_latlong $geonames $query]
+	}
+
 	if {[dict exists $geonames_result error]} {
 		$::wds::output_cmd "PRIVMSG $chan :Error looking up latitude/longitude: [dict get $geonames_result error]"
 		return [dict create]
