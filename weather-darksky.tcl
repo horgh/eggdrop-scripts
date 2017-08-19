@@ -19,6 +19,7 @@ package require geonames
 
 namespace eval ::wds {
 	variable output_cmd putserv
+	variable geonames_cache [dict create]
 }
 
 proc ::wds::lookup_current {nick uhost hand chan argv} {
@@ -67,6 +68,7 @@ proc ::wds::lookup_forecast {nick uhost hand chan argv} {
 # to use is unclear. I suppose we could generate something random.
 proc ::wds::get_query {nick uhost argv} {
 	set query [string trim $argv]
+	set query [string tolower $query]
 	if {$query != ""} {
 		::wds::set_default_location $nick $uhost $query
 		return $query
@@ -97,19 +99,7 @@ proc ::wds::get_default_location {nick uhost} {
 proc ::wds::get_data {chan query} {
 	set conf [::wds::load_config]
 
-	set geonames [::geonames::new [dict get $conf geonames_username]]
-
-	set geonames_result {}
-
-	# If the user gave us what looks like a US zip code, use the postal code
-	# search API rather than the text search API. The text search API gives
-	# unreliable results using zip codes alone.
-	if {[regexp -- {\A[0-9]{5}\Z} $query]} {
-		set geonames_result [::geonames::postalcode_latlong $geonames $query US]
-	} else {
-		set geonames_result [::geonames::search_latlong $geonames $query]
-	}
-
+	set geonames_result [::wds::get_lat_long $conf $query]
 	if {[dict exists $geonames_result error]} {
 		$::wds::output_cmd "PRIVMSG $chan :Error looking up latitude/longitude: [dict get $geonames_result error]"
 		return [dict create]
@@ -124,6 +114,51 @@ proc ::wds::get_data {chan query} {
 	}
 
 	return [dict create geonames $geonames_result darksky $darksky_result]
+}
+
+proc ::wds::get_lat_long {conf query} {
+	if {[dict exists $::wds::geonames_cache $query]} {
+		return [dict get $::wds::geonames_cache $query]
+	}
+
+	set geonames [::geonames::new [dict get $conf geonames_username]]
+
+	set geonames_result {}
+
+	# If the user gave us what looks like a US zip code, use the postal code
+	# search API rather than the text search API. The text search API gives
+	# unreliable results using zip codes alone.
+	if {[regexp -- {\A[0-9]{5}\Z} $query]} {
+		set geonames_result [::geonames::postalcode_latlong $geonames $query US]
+	} else {
+		set geonames_result [::geonames::search_latlong $geonames $query]
+	}
+
+	if {![dict exists $geonames_result error]} {
+		dict set ::wds::geonames_cache $query $geonames_result
+		::wds::save_cache $conf
+	}
+
+	return $geonames_result
+}
+
+proc ::wds::save_cache {conf} {
+	set fh [open [dict get $conf geonames_cache_file] w]
+	puts -nonewline $fh $::wds::geonames_cache
+	close $fh
+}
+
+proc ::wds::load_cache {} {
+	set conf [::wds::load_config]
+
+	if {![file exists [dict get $conf geonames_cache_file]]} {
+		set ::wds::geonames_cache [dict create]
+		return
+	}
+
+	set fh [open [dict get $conf geonames_cache_file]]
+	set ::wds::geonames_cache [read -nonewline $fh]
+	close $fh
 }
 
 proc ::wds::load_config {} {
@@ -164,6 +199,9 @@ proc ::wds::load_config {} {
 	}
 	if {![dict exists $conf darksky_key]} {
 		error "no darksky_key set"
+	}
+	if {![dict exists $conf geonames_cache_file ]} {
+		error "no geonames_cache_file set"
 	}
 
 	return $conf
@@ -276,6 +314,7 @@ proc ::wds::format_decimal {number} {
 setudef flag weather-darksky
 bind pub -|- .wz ::wds::lookup_current
 bind pub -|- .wzf ::wds::lookup_forecast
+::wds::load_cache
 
 putlog "weather-darksky.tcl (https://github.com/horgh/eggdrop-scripts/weather-darksky.tcl) loaded"
 putlog "weather-darksky.tcl: Powered by Dark Sky (www.darksky.net)"

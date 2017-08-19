@@ -1,2 +1,3 @@
 geonames_username = example
 darksky_key = example
+geonames_cache_file = geonames-cache.bin
