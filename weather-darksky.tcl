@@ -316,6 +316,6 @@ bind pub -|- .wz ::wds::lookup_current
 bind pub -|- .wzf ::wds::lookup_forecast
 ::wds::load_cache
 
-putlog "weather-darksky.tcl (https://github.com/horgh/eggdrop-scripts/weather-darksky.tcl) loaded"
+putlog "weather-darksky.tcl (https://github.com/horgh/eggdrop-scripts) loaded"
 putlog "weather-darksky.tcl: Powered by Dark Sky (www.darksky.net)"
 putlog "weather-darksky.tcl: Powered by GeoNames (www.geonames.org)"

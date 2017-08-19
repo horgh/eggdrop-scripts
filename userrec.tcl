@@ -15,4 +15,4 @@ proc ::ur::whoami {nick uhost hand chan argv} {
 setudef flag userrec
 bind pub -|- .whoami ::ur::whoami
 
-putlog "userrec.tcl (https://github.com/horgh/eggdrop-scripts/userrec.tcl) loaded"
+putlog "userrec.tcl (https://github.com/horgh/eggdrop-scripts) loaded"
