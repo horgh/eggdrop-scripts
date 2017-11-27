@@ -3,6 +3,8 @@
 # If you update this, update the one in
 # https://github.com/horgh/irssi-tcl-scripts.
 package require http
+package require tls
+::http::register https 443 [list ::tls::socket -ssl2 0 -ssl3 0 -tls1 1]
 
 namespace eval ::latoc {
 	variable output_cmd putserv
