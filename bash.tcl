@@ -24,14 +24,10 @@ namespace eval ::bash {
 	variable url http://bash.org/?
 
 	variable list_regexp {<p class="quote">.*?<p class="qt">.*?</p>}
-	variable quote_regexp {<p class="quote">.*?<b>#(.*?)</b>.*?class="qa".*?</a>\((.*?)\)<a.*?<p class="qt">(.*?)</p>}
+	variable quote_regexp {<p class="quote">.*?<b>#(.*?)</b>.*?class="qa".*?</a>\((.*)\)<a.*?<p class="qt">(.*?)</p>}
 
-	if {![info exists random_quotes]} {
-		variable random_quotes []
-	}
-	if {![info exists search_quotes]} {
-		variable search_quotes []
-	}
+	variable random_quotes []
+	variable search_quotes []
 }
 
 proc ::bash::quote_output {chan quote} {
@@ -120,13 +116,14 @@ proc ::bash::fetch {url} {
 proc ::bash::parse {html} {
 	set quotes []
 	foreach raw_quote [regexp -all -inline -- $::bash::list_regexp $html] {
-		if {[regexp $::bash::quote_regexp $raw_quote -> number rating quote]} {
-			lappend quotes [list number $number rating $rating quote $quote]
-		} else {
+		if {![regexp $::bash::quote_regexp $raw_quote -> number rating quote]} {
 			error "Parse error"
 		}
+		# Strip <font color=green|red> from rating
+		regsub -all {<font.*?>} $rating {} rating
+		regsub -all {</font>} $rating {} rating
+		lappend quotes [list number $number rating $rating quote $quote]
 	}
-
 	return $quotes
 }
 
