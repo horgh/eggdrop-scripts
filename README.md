@@ -9,12 +9,15 @@ written by others.
 * calc.tcl - provides !calc calculator function
 * dictionary.tcl - make your bot respond to certain words/phrases
 * github_watch.tcl
-* google.tcl - query the Google API for searching/news/images. also use regular google search for google converting/calculating
-* horgh_autoop.tcl - auto op all users in a channel which is set +horgh_autoop
+* google.tcl - query the Google API for searching/news/images. also use
+  regular google search for google converting/calculating
+* horgh_autoop.tcl - auto op all users in a channel which is set
+  +horgh_autoop
 * imdb.tcl - IMDB.org query script. Written by B0unTy, modified by OV2
 * irb.tcl - unsafe public ruby interpreter
 * isgd.tcl - provide function that shortens a given url using http://is.gd
-* latoc.tcl - queries yahoo commodity listings for: energy, metals, grains, livestock, softs
+* latoc.tcl - queries yahoo commodity listings for: energy, metals, grains,
+  livestock, softs
 * mysqlquote.tcl
 * patternban.tcl
 * slang.tcl - urbandictionary.com definition fetcher
