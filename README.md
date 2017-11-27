@@ -12,7 +12,6 @@ written by others.
   regular google search for google converting/calculating
 * horgh_autoop.tcl - auto op all users in a channel which is set
   +horgh_autoop
-* imdb.tcl - IMDB.org query script. Written by B0unTy, modified by OV2
 * irb.tcl - unsafe public ruby interpreter
 * isgd.tcl - provide function that shortens a given url using http://is.gd
 * latoc.tcl - queries yahoo commodity listings for: energy, metals, grains,
