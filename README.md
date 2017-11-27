@@ -8,7 +8,6 @@ written by others.
 * bash.tcl - bash.org quote fetcher
 * calc.tcl - provides !calc calculator function
 * dictionary.tcl - make your bot respond to certain words/phrases
-* github_watch.tcl
 * google.tcl - query the Google API for searching/news/images. also use
   regular google search for google converting/calculating
 * horgh_autoop.tcl - auto op all users in a channel which is set
