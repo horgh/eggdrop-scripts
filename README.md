@@ -13,7 +13,7 @@ written by others.
 * horgh_autoop.tcl - auto op all users in a channel which is set
   `+horgh_autoop`
 * irb.tcl - unsafe public ruby interpreter
-* isgd.tcl - provide function that shortens a given url using http://is.gd
+* isgd.tcl - a package that provides a function to shorten urls using https://is.gd
 * latoc.tcl - queries yahoo commodity listings for: energy, metals, grains,
   livestock, softs
 * mysqlquote.tcl
