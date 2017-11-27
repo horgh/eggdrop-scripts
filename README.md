@@ -11,7 +11,7 @@ written by others.
 * google.tcl - query the Google API for searching/news/images. also use
   regular google search for google converting/calculating
 * horgh_autoop.tcl - auto op all users in a channel which is set
-  +horgh_autoop
+  `+horgh_autoop`
 * irb.tcl - unsafe public ruby interpreter
 * isgd.tcl - provide function that shortens a given url using http://is.gd
 * latoc.tcl - queries yahoo commodity listings for: energy, metals, grains,
