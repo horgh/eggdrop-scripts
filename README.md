@@ -14,8 +14,8 @@ written by others.
   `+horgh_autoop`
 * irb.tcl - unsafe public ruby interpreter
 * isgd.tcl - a package that provides a function to shorten urls using https://is.gd
-* latoc.tcl - queries yahoo commodity listings for: energy, metals, grains,
-  livestock, softs
+* latoc.tcl - queries Yahoo commodity listings for oil, gold, and silver
+  futures
 * mysqlquote.tcl
 * patternban.tcl
 * slang.tcl - urbandictionary.com definition fetcher
