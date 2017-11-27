@@ -1,134 +1,114 @@
-# created by horgh
+# Provides binds to read Yahoo.com futures
 #
-
+# If you update this, update the one in
+# https://github.com/horgh/irssi-tcl-scripts.
 package require http
 
-bind pub -|- "!oil" latoc::oil_handler
-bind pub -|- "!gold" latoc::gold_handler
-bind pub -|- "!c" latoc::commodity_handler
-bind pub -|- "!silver" latoc::silver_handler
-bind pub -|- "!url" latoc::url_handler
-
-namespace eval latoc {
-	variable user_agent "Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 OpenSSL/0.9.7e"
+namespace eval ::latoc {
 	variable output_cmd putserv
 
-	variable list_regexp {<tr><td class="first">.*?<td class="last">.*?</td></tr>}
-	#variable stock_regexp {<a href="/q\?s=(.*?)">.*?<td class="second name">(.*?)</td><td><b><span id=".*?">(.*?)</span></b> <nobr><span .*?>(.*?)(?:</span>)??</nobr>.*?(?:alt="(.*?)">)?? <b style="color.*?;">(.*?)</b>.*?<b style="color.*?;"> \((.*?)\)</b>}
-	variable stock_regexp {<a href="/q\?s=(.*?)">.*?<td class="second name">(.*?)</td>.*?<span id=".*?">(.*?)</span></b> <nobr><span id=".*?">(.*?)</span></nobr>.*?(?:alt="(.*?)">)?? <b style="color.*?;">(.*?)</b>.*?<b style="color.*?;"> \((.*?)\)</b>}
+	variable user_agent "Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 OpenSSL/0.9.7e"
 
-	# any names matching this pattern are not shown
-	variable skip_regexp {(5000 oz)|(100 oz)}
+	variable list_regexp {<tr class="data-row.*?".*?</a></td></tr>}
+	variable stock_regexp {<td class="data-col0.*>(.*)</a></td><td class="data-col1.*>(.*)</td><td class="data-col2.*>(.*)</td><td class="data-col3.*>(.*)</td><td class="data-col4.*>(.*)<!-- /react-text --></span></td><td class="data-col5.*>(.*)<!-- /react-text --></span></td><td class="data-col6.*>(.*)</td><td class="data-col7.*>(.*)</td><td class="data-col8.*"}
 
-	variable commodities [list energy metals grains livestock softs]
-	variable energy_futures "http://finance.yahoo.com/futures?t=energy"
-	variable commodities_url "http://finance.yahoo.com/futures?t="
+	variable url "https://finance.yahoo.com/commodities?ltr=1"
+
+	bind pub -|- "!oil"    ::latoc::oil_handler
+	bind pub -|- "!gold"   ::latoc::gold_handler
+	bind pub -|- "!silver" ::latoc::silver_handler
 
 	setudef flag latoc
 }
 
-proc latoc::url_handler {nick uhost hand chan argv} {
-	$latoc::output_cmd "PRIVMSG $chan :$latoc::commodities_url"
+proc ::latoc::fetch {chan} {
+	::http::config -useragent $::latoc::user_agent
+	set token [::http::geturl $::latoc::url -timeout 20000]
+
+	set status [::http::status $token]
+	if {$status != "ok"} {
+		set http_error [::http::error $token]
+		$::latoc::output_cmd "PRIVMSG $chan :HTTP error: $status: $http_error"
+		::http::cleanup $token
+		return
+	}
+
+	set ncode [::http::ncode $token]
+	if {$ncode != 200} {
+		set code [::http::code $token]
+		$::latoc::output_cmd "PRIVMSG $chan :HTTP error: $ncode: $code"
+		::http::cleanup $token
+		return
+	}
+
+	set data [::http::data $token]
+	::http::cleanup $token
+
+	return $data
 }
 
-# fetch lines from given commodity type (url) and only return lines that
-# match the given pattern (regexp) to Name (optional)
-# return list of lines, each a stock
-proc latoc::fetch {type {pattern {}}} {
-	set token [http::geturl ${latoc::commodities_url}${type} -timeout 60000]
-	set data [http::data $token]
-	set ncode [http::ncode $token]
-	http::cleanup $token
-
-	if {$ncode != 200} {
-		error "HTTP error: (code: $ncode): $data"
-	}
-
+proc ::latoc::parse {data} {
 	set lines []
-	foreach stock [regexp -all -inline -- $latoc::list_regexp $data] {
-		regexp $latoc::stock_regexp $stock -> symbol name price last direction change percent
-		if {[regexp -- $pattern $name]} {
-			if {[regexp -- $latoc::skip_regexp $name]} {
-				continue
-			}
-			lappend lines [latoc::format $name $price $last $direction $change $percent]
+	foreach stock [regexp -all -inline -- $::latoc::list_regexp $data] {
+		regexp $::latoc::stock_regexp $stock -> symbol name price last change percent volume interest
+		set direction none
+		if {$change < 0} {
+			set direction Down
 		}
+		if {$change > 0} {
+			set direction Up
+		}
+		lappend lines [::latoc::format $name $price $last $direction $change $percent]
 	}
 
-	if {[llength $lines] == 0} {
-		lappend lines "No results."
-	}
 	return $lines
 }
 
-proc latoc::commodity_handler {nick uhost hand chan argv} {
-	if {![channel get $chan latoc]} { return }
-	if {[lsearch $latoc::commodities $argv] == -1} {
-		$latoc::output_cmd "PRIVMSG $chan :Valid commodities are: $latoc::commodities"
-		return
-	}
-
-	if {[catch {latoc::fetch $argv} result]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
-		return
-	}
-
-	foreach line $result {
-		$latoc::output_cmd "PRIVMSG $chan :$line"
+proc ::latoc::output {chan lines symbol_pattern} {
+	foreach line $lines {
+		if {![regexp -- $symbol_pattern $line]} {
+			continue
+		}
+		$::latoc::output_cmd "PRIVMSG $chan :$line"
 	}
 }
 
-proc latoc::oil_handler {nick uhost hand chan argv} {
+proc ::latoc::oil_handler {nick uhost hand chan argv} {
 	if {![channel get $chan latoc]} { return }
 
-	if {[catch {latoc::fetch "energy" "Crude Oil"} result]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
-		return
-	}
-
-	foreach line $result {
-		$latoc::output_cmd "PRIVMSG $chan :$line"
-	}
+	set data [::latoc::fetch $chan]
+	set lines [::latoc::parse $data]
+	::latoc::output $chan $lines {Crude Oil}
 }
 
-proc latoc::gold_handler {nick uhost hand chan argv} {
+proc ::latoc::gold_handler {nick uhost hand chan argv} {
 	if {![channel get $chan latoc]} { return }
 
-	if {[catch {latoc::fetch "metals" "Gold"} result]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
-		return
-	}
-
-	foreach line $result {
-		$latoc::output_cmd "PRIVMSG $chan :$line"
-	}
+	set data [::latoc::fetch $chan]
+	set lines [::latoc::parse $data]
+	::latoc::output $chan $lines {Gold}
 }
 
-proc latoc::silver_handler {nick uhost hand chan argv} {
+proc ::latoc::silver_handler {nick uhost hand chan argv} {
 	if {![channel get $chan latoc]} { return }
 
-	if {[catch {latoc::fetch "metals" "Silver"} result]} {
-		$latoc::output_cmd "PRIVMSG $chan :Error: $result"
-		return
-	}
-
-	foreach line $result {
-		$latoc::output_cmd "PRIVMSG $chan :$line"
-	}
+	set data [::latoc::fetch $chan]
+	set lines [::latoc::parse $data]
+	::latoc::output $chan $lines {Silver}
 }
 
-proc latoc::format {name price last direction change percent} {
-# this cuts off the Jun 09 part from Crude Oil Jun 09
-#	set name [lrange $name 0 [expr [llength $name]-3]]
-	return "$name: \00310$price [latoc::colour $direction $change] [latoc::colour $direction $percent]\003 $last"
+proc ::latoc::format {name price last direction change percent} {
+	return "$name: \00310$price [::latoc::colour $direction $change] [::latoc::colour $direction $percent]\003 $last"
 }
 
-proc latoc::colour {direction value} {
+proc ::latoc::colour {direction value} {
 	if {[string match "Down" $direction]} {
-		return \00304-$value\017
-	} elseif {[string match "Up" $direction]} {
-		return \00309+$value\017
-	} else {
-		return $value
+		return \00304$value\017
 	}
+	if {[string match "Up" $direction]} {
+		return \00309$value\017
+	}
+	return $value
 }
+
+putlog "latoc.tcl loaded"
