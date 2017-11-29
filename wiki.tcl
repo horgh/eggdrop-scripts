@@ -79,9 +79,7 @@ proc wiki::fetch {term {url {}}} {
 }
 
 proc wiki::sanitise {raw} {
-	set raw [htmlparse::mapEscapes $raw]
-	# Remove pronunciation stuff
-	set raw [regsub -- {<span.*? class="IPA">.*?</span>} $raw ""]
+	set raw [::htmlparse::mapEscapes $raw]
 	# Remove some help links
 	set raw [regsub -- {<small class="metadata">.*?</small>} $raw ""]
 
