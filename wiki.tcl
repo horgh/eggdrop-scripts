@@ -109,7 +109,7 @@ proc wiki::search {nick uhost hand chan argv} {
 
 	foreach line [wiki::split_line $wiki::max_chars [dict get $data result]] {
 		if {[incr count] > $wiki::max_lines} {
-			$wiki::output_cmd "PRIVMSG $chan :Output truncuated. [dict get $data url]"
+			$wiki::output_cmd "PRIVMSG $chan :Output truncated. [dict get $data url]"
 			break
 		}
 		$wiki::output_cmd "PRIVMSG $chan :$line"
