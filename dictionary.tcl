@@ -160,6 +160,7 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     return
   }
   set argv [stripcodes "uacgbr" $argv]
+  set argv [string trim $argv]
 
   # We only respond if we are directly addressed (botnick: ). This indicates
   # someone is giving us a command.
