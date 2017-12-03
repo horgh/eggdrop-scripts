@@ -28,9 +28,6 @@ namespace eval dictionary {
   # File containing nicks to not respond to. Newline separated.
   variable skip_nick_file "scripts/dictionary_skip_nicks.txt"
 
-  # File containing affirmative responses. Newline separated.
-  variable affirmative_responses_file "scripts/dictionary_affirmative_list.txt"
-
   # File containing chatty responses.
   #
   # These are really just random phrases
@@ -55,7 +52,6 @@ namespace eval dictionary {
   # Nicks to not respond to terms for. e.g., bots.
   variable skip_nicks [list]
 
-  variable affirmative_responses [list]
   variable chatty_responses [list]
 
   # Dict with keys <channel><term> with values containing the unixtime the last
@@ -299,11 +295,7 @@ proc ::dictionary::get_random_response {responses nick} {
 }
 
 proc ::dictionary::get_affirmative_response {nick} {
-  if {[llength $::dictionary::affirmative_responses] == 0} {
-    return "OK."
-  }
-  return [::dictionary::get_random_response \
-    $::dictionary::affirmative_responses $nick]
+  return "OK, $nick"
 }
 
 proc ::dictionary::get_negative_response {nick} {
@@ -370,12 +362,6 @@ proc ::dictionary::load_skip_nicks {} {
     $::dictionary::skip_nick_file]
 }
 
-# Load affirmative responses from data file.
-proc ::dictionary::load_affirmative_responses {} {
-  set ::dictionary::affirmative_responses [::dictionary::file_contents_to_list \
-    $::dictionary::affirmative_responses_file]
-}
-
 # Load chatty responses from data file.
 proc ::dictionary::load_chatty_responses {} {
   set ::dictionary::chatty_responses [::dictionary::file_contents_to_list \
@@ -388,7 +374,6 @@ proc ::dictionary::load {args} {
 
   ::dictionary::load_skip_nicks
 
-  ::dictionary::load_affirmative_responses
   ::dictionary::load_chatty_responses
 
   return $term_count
