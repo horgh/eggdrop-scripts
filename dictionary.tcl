@@ -403,7 +403,7 @@ proc ::dictionary::load {args} {
 }
 
 # Save the terms and definitions to the data file.
-proc ::dictionary::write_db {} {
+proc ::dictionary::save {} {
   variable term_file
   variable terms
 
