@@ -227,6 +227,15 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     return
   }
 
+  if {[string tolower $rest] == "braindump"} {
+    set i 1
+    foreach response $::dictionary::chatty_responses {
+      puthelp "PRIVMSG $nick :$i. $response"
+      incr i
+    }
+    return
+  }
+
   set response [::dictionary::get_chatty_response $nick]
   putserv "PRIVMSG $chan :$response"
 }
