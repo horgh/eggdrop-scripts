@@ -68,9 +68,8 @@ namespace eval dictionary {
   # This is for throttling term outputs.
   variable flood [dict create]
 
-  bind pubm -|- "*"          ::[namespace current]::public
-  bind pubm -|- "*"          ::[namespace current]::publearn
-  bind evnt -|- "save"       ::[namespace current]::save
+  bind pubm -|- "*" ::dictionary::public
+  bind pubm -|- "*" ::dictionary::publearn
 
   setudef flag dictionary
 }
@@ -184,6 +183,7 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     set def [dict get $terms $term def]
     dict unset terms $term
     ::dictionary::save
+
     putserv "PRIVMSG $chan :I forgot `$term'. (It was `$def'.)"
     return
   }
@@ -419,11 +419,6 @@ proc ::dictionary::write_db {} {
   set fp [open $term_file w]
   puts -nonewline $fp $terms
   close $fp
-}
-
-# Handle save events. Write out our data files.
-proc ::dictionary::save {args} {
-  ::dictionary::write_db
 }
 
 set ::dictionary::count [::dictionary::load]
