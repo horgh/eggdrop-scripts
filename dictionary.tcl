@@ -422,4 +422,8 @@ proc ::dictionary::write_db {} {
 }
 
 set ::dictionary::count [::dictionary::load]
-putlog "dictionary.tcl loaded. $::dictionary::count term(s)."
+if {$::dictionary::count == 1} {
+  putlog "dictionary.tcl loaded. $::dictionary::count term."
+} else {
+  putlog "dictionary.tcl loaded. $::dictionary::count terms."
+}
