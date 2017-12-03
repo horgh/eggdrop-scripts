@@ -277,11 +277,12 @@ proc ::dictionary::is_addressing_bot {text botnick} {
 # hitest
 proc ::dictionary::string_contains_term {s term} {
   set term_lc [string tolower $term]
-
   set term_quoted [::dictionary::quotemeta $term_lc]
 
-  # \m matches at the beginning of a word, \M at the end.
-  return [regexp -nocase -- \\m$term_quoted\\M $s]
+  set re {\m}
+  append re $term_quoted
+  append re {\M}
+  return [regexp -nocase -- $re $s]
 }
 
 # Escape/quote metacharacters so that the string becomes suitable for placing in
