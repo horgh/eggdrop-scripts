@@ -180,6 +180,17 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     return
   }
 
+  if {[regexp -nocase -- {^remember this:\s+(.+)} $rest -> response]} {
+    lappend ::dictionary::chatty_responses $response
+    if {[catch {::dictionary::list_to_file $::dictionary::chatty_responses \
+          $::dictionary::chatty_responses_file} err]} {
+      putserv "PRIVMSG $chan :Error! $err"
+      return
+    }
+    putserv "PRIVMSG $chan :OK, $nick."
+    return
+  }
+
   # Set a term. <botnick>: <term> is <definition>
   if {[regexp -nocase -- {^(.+?)\s+is\s+(.+)$} $rest -> term def]} {
     if {[dict exists $terms $term]} {
@@ -358,6 +369,14 @@ proc ::dictionary::file_contents_to_list {path} {
     lappend l $line
   }
   return $l
+}
+
+proc ::dictionary::list_to_file {l path} {
+  set fh [open $path w]
+  foreach e $l {
+    puts $fh $e
+  }
+  close $fh
 }
 
 # Load a list of nicks to skip from a data file.
