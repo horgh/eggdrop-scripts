@@ -168,77 +168,77 @@ proc ::dictionary::publearn {nick host hand chan argv} {
     return
   }
 
-  # Try to set a term.
-  #
-  # This can be done by: <botnick>: <term> is <definition>
-  #
-  # Or: <botnick>: <term>, <definition>
-  if {([lsearch $argv "is"] >= 0 && [llength $argv] >= 4) \
-    || ([string first "," $argv]>-1 && [llength $argv] >= 3)} \
-  {
-    # <botnick>: <term> is <definition
-    set include_term_in_def 1
-    if {[lsearch $argv "is"] >= 0 && [string first "," $argv] < 0} {
-      set term [lrange [split $argv] 1 [expr [lsearch $argv "is"] - 1]]
-      set description "[lrange [split $argv] [expr [lsearch $argv "is"] + 1] end]"
-    # <botnick>: <term>, <definition>
-    } else {
-      set term [lrange [split $argv] 1 end]
-      set term [string range $term 0 [expr [string first "," $term] - 1]]
-      set include_term_in_def 0
-      set description "[string range $argv [expr [string first "," $argv] + 2] end]"
-    }
-
-    if {[dict exists $terms $term]} {
-      set term_dict [dict get $terms $term]
-      set def [dict get $term_dict def]
-      putserv "PRIVMSG $chan :$term is already $def"
-      return
-    }
-
-    set term [string trim $term]
-    set description [string trim $description]
-    if {[string length $term] == 0 || [string length $description] == 0} {
-      set response [::dictionary::get_negative_response $nick]
-      putserv "PRIVMSG $chan :$response"
-      return
-    }
-
-    # Set it, and send a random success response.
-    set term_dict [dict create]
-    dict set term_dict def $description
-    dict set term_dict include_term_in_def $include_term_in_def
-    dict set terms $term $term_dict
-    set response [::dictionary::get_affirmative_response $nick]
+  if {![regexp -nocase -- {^\S+\s+(.+)} $argv -> rest]} {
+    set response [::dictionary::get_negative_response $nick]
     putserv "PRIVMSG $chan :$response"
     return
   }
 
   # Delete a term. <botnick>: forget <term>
-  if {[lindex [split $argv] 1] == "forget" && [llength $argv] >= 3} {
-    set term [lrange [split $argv] 2 end]
-    # if it does not exist, then send a random deny response.
+  #
+  # Note this means we can't set a term using the "is" syntax (e.g. forget blah
+  # is x).
+  if {[regexp -nocase -- {^forget\s+(.+)} $rest -> term]} {
     if {![dict exists $terms $term]} {
       set response [::dictionary::get_negative_response $nick]
-      putserv "PRIVMSG $chan :$response"
+      putserv "PRIVMSG $chan :I don't know `$term'."
       return
     }
+
+    set def [dict get $terms $term def]
     dict unset terms $term
-    putserv "PRIVMSG $chan :I forgot $term."
+    ::dictionary::save
+    putserv "PRIVMSG $chan :I forgot `$term'. (It was `$def'.)"
+    return
+  }
+
+  # Set a term. <botnick>: <term> is <definition>
+  if {[regexp -nocase -- {^(.+?)\s+is\s+(.+)$} $rest -> term def]} {
+    if {[dict exists $terms $term]} {
+      set def [dict get $terms $term def]
+      putserv "PRIVMSG $chan :`$term' is already `$def'"
+      return
+    }
+
+    dict set terms $term [dict create \
+      def                 $def \
+      include_term_in_def 1 \
+    ]
+    ::dictionary::save
+
+    set response [::dictionary::get_affirmative_response $nick]
+    putserv "PRIVMSG $chan :$response"
+    return
+  }
+
+  # Set a term. <botnick>: <term>, <definition>
+  if {[regexp -nocase -- {^(.+?)\s*,\s+(.+)$} $rest -> term def]} {
+    if {[dict exists $terms $term]} {
+      set def [dict get $terms $term def]
+      putserv "PRIVMSG $chan :`$term' is already `$def'"
+      return
+    }
+
+    dict set terms $term [dict create \
+      def                 $def \
+      include_term_in_def 0 \
+    ]
+    ::dictionary::save
+
+    set response [::dictionary::get_affirmative_response $nick]
+    putserv "PRIVMSG $chan :$response"
     return
   }
 
   # Message the nick all terms we have
-  if {[lindex [split $argv] 1] == "listem" && [llength $argv] == 2} {
+  if {[string tolower $rest] == "listem"} {
     foreach term [lsort -dictionary [dict keys $terms]] {
-      set term_dict [dict get $terms $term]
-      set def [dict get $term_dict def]
+      set def [dict get $terms $term def]
       puthelp "PRIVMSG $nick :$term: $def"
     }
     return
   }
 
-  # Unknown command. send a random chatty response.
   set response [::dictionary::get_chatty_response $nick]
   putserv "PRIVMSG $chan :$response"
 }
@@ -437,7 +437,6 @@ proc ::dictionary::write_db {} {
 
 # handle save events.  write out our data files.
 proc ::dictionary::save {args} {
-  # term database.
   ::dictionary::write_db
 }
 
