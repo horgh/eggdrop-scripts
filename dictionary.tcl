@@ -285,15 +285,6 @@ proc ::dictionary::quotemeta {s} {
   return [regsub -all {\W} $s {\\&}]
 }
 
-proc ::dictionary::get_random_response {responses nick} {
-  # We assume we have responses in the list.
-
-  set response_index [rand [llength $responses]]
-  set response [lindex $responses $response_index]
-
-  return [regsub -all -- "%%nick%%" $response $nick]
-}
-
 proc ::dictionary::get_affirmative_response {nick} {
   return "OK, $nick"
 }
@@ -303,11 +294,15 @@ proc ::dictionary::get_negative_response {nick} {
 }
 
 proc ::dictionary::get_chatty_response {nick} {
-  if {[llength $::dictionary::chatty_responses] == 0} {
+  set n [llength $::dictionary::chatty_responses]
+  if {$n == 0} {
     return "Hi."
   }
-  return [::dictionary::get_random_response \
-    $::dictionary::chatty_responses $nick]
+
+  set idx [expr int($n*rand())]
+  set response [lindex $::dictionary::chatty_responses $idx]
+
+  return [regsub -all -- "%%nick%%" $response $nick]
 }
 
 # Load the term database from our data file.
