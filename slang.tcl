@@ -117,7 +117,7 @@ proc ::ud::output {chan def_dict} {
 }
 
 proc ::ud::get_random {} {
-	set result [::ud::http_fetch $::ud::url_random ""]
+	set result [::ud::http_fetch $::ud::url_random -1]
 	set word [dict get $result word]
 	set defs_html [dict get $result definitions]
 
@@ -136,7 +136,7 @@ proc ::ud::get_def {query number} {
 	append url ?
 	append url [::http::formatQuery term $query page $page]
 
-	set result [::ud::http_fetch $url]
+	set result [::ud::http_fetch $url $page]
 	set word [dict get $result word]
 	set defs_html [dict get $result definitions]
 
@@ -170,7 +170,7 @@ proc ::ud::store_response {data} {
 	::ud::log "stored response to $path"
 }
 
-proc ::ud::http_fetch {url} {
+proc ::ud::http_fetch {url page} {
 	http::config -useragent $::ud::client
 
 	::ud::log "Fetching $url"
@@ -183,7 +183,11 @@ proc ::ud::http_fetch {url} {
 	# Follow redirects
 	if {[regexp -- {30[01237]} $ncode]} {
 		set new_url [dict get $meta Location]
-		return [::ud::http_fetch $new_url]
+		# We lose our page parameter apparently.
+		if {$page != -1} {
+			append new_url &page=$page
+		}
+		return [::ud::http_fetch $new_url $page]
 	}
 
 	if {$ncode != 200} {
