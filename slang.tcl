@@ -50,8 +50,8 @@ namespace eval ::ud {
 
 	# regex to find the word
 	variable word_regex {<a class="word" href=.*?>(.*?)</a>}
-	variable list_regex {<div class='def-panel' data-defid='[0-9]+?'>.*?<div class='def-footer'>}
-	variable def_regex {<div class='def-panel' data-defid='([0-9]+?)'>.*?<div class='meaning'>(.*?)</div>}
+	variable list_regex {<div class="def-panel" data-defid="[0-9]+?">.*?<div class="def-footer">}
+	variable def_regex {<div class="def-panel" data-defid="([0-9]+?)">.*?<div class="meaning">(.*?)</div>}
 
 	setudef flag ud
 	bind pub -|- $::ud::trigger ::ud::handler
@@ -132,9 +132,11 @@ proc ::ud::get_def {query number} {
 	set page [expr {int(ceil($number / 7.0))}]
 	set number [expr {$number - (($page - 1) * 7)}]
 
-	set http_query [http::formatQuery term $query page $page]
+	set url $::ud::url
+	append url ?
+	append url [::http::formatQuery term $query page $page]
 
-	set result [::ud::http_fetch $::ud::url $http_query]
+	set result [::ud::http_fetch $url]
 	set word [dict get $result word]
 	set defs_html [dict get $result definitions]
 
@@ -168,10 +170,11 @@ proc ::ud::store_response {data} {
 	::ud::log "stored response to $path"
 }
 
-proc ::ud::http_fetch {url http_query} {
+proc ::ud::http_fetch {url} {
 	http::config -useragent $::ud::client
 
-	set token [http::geturl $url -timeout 20000 -query $http_query]
+	::ud::log "Fetching $url"
+	set token [http::geturl $url -timeout 20000]
 	set data [http::data $token]
 	set ncode [http::ncode $token]
 	set meta [http::meta $token]
@@ -180,7 +183,7 @@ proc ::ud::http_fetch {url http_query} {
 	# Follow redirects
 	if {[regexp -- {30[01237]} $ncode]} {
 		set new_url [dict get $meta Location]
-		return [::ud::http_fetch $new_url $http_query]
+		return [::ud::http_fetch $new_url]
 	}
 
 	if {$ncode != 200} {
