@@ -45,8 +45,8 @@ namespace eval ::ud {
 	variable output_cmd "putserv"
 
 	variable client "Mozilla/5.0 (compatible; Y!J; for robot study; keyoshid)"
-	variable url http://www.urbandictionary.com/define.php
-	variable url_random http://www.urbandictionary.com/random.php
+	variable url https://www.urbandictionary.com/define.php
+	variable url_random https://www.urbandictionary.com/random.php
 
 	# regex to find the word
 	variable word_regex {<a class="word" href=.*?>(.*?)</a>}
