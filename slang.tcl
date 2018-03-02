@@ -184,7 +184,7 @@ proc ::ud::http_fetch {url page} {
 	if {[regexp -- {30[01237]} $ncode]} {
 		set new_url [dict get $meta Location]
 		# We lose our page parameter apparently.
-		if {$page != -1} {
+		if {$page != -1 && $page != 1} {
 			append new_url &page=$page
 		}
 		return [::ud::http_fetch $new_url $page]
