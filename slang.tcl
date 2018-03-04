@@ -194,6 +194,10 @@ proc ::ud::http_fetch {url page} {
 		return [::ud::http_fetch $new_url $page]
 	}
 
+	if {$ncode == 404} {
+		error "No definitions found."
+	}
+
 	if {$ncode != 200} {
 		error "HTTP fetch error. Code: $ncode"
 	}
