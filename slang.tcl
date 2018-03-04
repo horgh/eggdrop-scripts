@@ -134,7 +134,11 @@ proc ::ud::get_def {query number} {
 
 	set url $::ud::url
 	append url ?
-	append url [::http::formatQuery term $query page $page]
+	if {$page == 1} {
+		append url [::http::formatQuery term $query]
+	} else {
+		append url [::http::formatQuery term $query page $page]
+	}
 
 	set result [::ud::http_fetch $url $page]
 	set word [dict get $result word]
