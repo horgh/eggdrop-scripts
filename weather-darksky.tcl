@@ -274,6 +274,9 @@ proc ::wds::output_forecast {chan geonames darksky} {
 		if {$count == 5} {
 			break
 		}
+		if {[dict get $forecast time] < [clock seconds]} {
+			continue
+		}
 		if {$output != ""} {
 			append output " "
 		}
