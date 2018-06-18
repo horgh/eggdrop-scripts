@@ -219,6 +219,12 @@ proc ::wds::output_current {chan geonames darksky} {
 	append output [::wds::format_decimal [dict get $darksky longitude]]
 	append output "°W)"
 
+	append output " \002Local time\002: "
+	append output [clock format [dict get $darksky time] \
+		-format "%H:%M" \
+		-timezone :[dict get $darksky timezone] \
+	]
+
 	append output " \002Conditions\002: "
 	append output [dict get $darksky summary]
 	$::wds::output_cmd "PRIVMSG $chan :$output"
