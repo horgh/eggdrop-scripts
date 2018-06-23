@@ -221,7 +221,7 @@ proc ::wds::output_current {chan geonames darksky} {
 
 	append output " \002Local time\002: "
 	append output [clock format [dict get $darksky time] \
-		-format "%H:%M" \
+		-format   "%H:%M" \
 		-timezone :[dict get $darksky timezone] \
 	]
 
@@ -280,9 +280,10 @@ proc ::wds::output_forecast {chan geonames darksky} {
 		if {$count == 5} {
 			break
 		}
-		if {[dict get $forecast time] < [clock seconds]} {
+		if {![wds::should_show_forecast [dict get $darksky timezone] $forecast]} {
 			continue
 		}
+
 		if {$output != ""} {
 			append output " "
 		}
@@ -309,6 +310,27 @@ proc ::wds::output_forecast {chan geonames darksky} {
 		incr count
 	}
 	$::wds::output_cmd "PRIVMSG $chan :$output"
+}
+
+# We can get old forecast info. For example if it's Sunday we could get
+# Saturday's. We don't want to show that.
+#
+# We do want to show today's though. The time given in the forecast is at
+# 00:00:00 of the day.
+proc ::wds::should_show_forecast {timezone forecast} {
+	set now [clock seconds]
+
+	set today        [::wds::format_ymd $timezone $now]
+	set forecast_day [::wds::format_ymd $timezone [dict get $forecast time]]
+
+	return $today == $forecast_day || [dict get $forecast time] >= $now
+}
+
+proc ::wds::format_ymd {timezone time} {
+	return [clock format $time \
+		-format   "%Y-%m-%d" \
+		-timezone :$timezone \
+	]
 }
 
 proc ::wds::celsius_to_fahrenheit {celsius} {
