@@ -38,7 +38,9 @@ proc ::wds::lookup_current {nick uhost hand chan argv} {
 	set geonames [dict get $data geonames]
 	set darksky [dict get $data darksky]
 
-	::wds::output_current $chan $geonames $darksky
+	if {[catch {::wds::output_current $chan $geonames $darksky} error]} {
+		$::wds::output_cmd "PRIVMSG $chan :Error: $error"
+	}
 }
 
 proc ::wds::lookup_forecast {nick uhost hand chan argv} {
@@ -57,7 +59,9 @@ proc ::wds::lookup_forecast {nick uhost hand chan argv} {
 	set geonames [dict get $data geonames]
 	set darksky [dict get $data darksky]
 
-	::wds::output_forecast $chan $geonames $darksky
+	if {[catch {::wds::output_forecast $chan $geonames $darksky} error]} {
+		$::wds::output_cmd "PRIVMSG $chan :Error: $error"
+	}
 }
 
 # Retrieve the query to look up. If none is given, return the last one we used.
