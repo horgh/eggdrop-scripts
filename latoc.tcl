@@ -12,7 +12,7 @@ namespace eval ::latoc {
 	variable user_agent "Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 OpenSSL/0.9.7e"
 
 	variable list_regexp {<tr class="data-row.*?".*?</a></td></tr>}
-	variable stock_regexp {<td class="data-col0.*>(.*)</a></td><td class="data-col1.*>(.*)</td><td class="data-col2.*>(.*)</td><td class="data-col3.*>(.*)</td><td class="data-col4.*>(.*)<!-- /react-text --></span></td><td class="data-col5.*>(.*)<!-- /react-text --></span></td><td class="data-col6.*>(.*)</td><td class="data-col7.*>(.*)</td><td class="data-col8.*"}
+	variable stock_regexp {<td class="data-col0.*>(.*)</a></td><td class="data-col1.*>(.*)</td><td class="data-col2.*>(.*)</td><td class="data-col3.*>(.*)</td><td class="data-col4.*>(.*)</span></td><td class="data-col5.*>(.*)</span></td><td class="data-col6.*>(.*)</td><td class="data-col7.*>(.*)</td><td class="data-col8.*"}
 
 	variable url "https://finance.yahoo.com/commodities?ltr=1"
 
