@@ -52,7 +52,10 @@ proc ::latoc::fetch {chan} {
 proc ::latoc::parse {data} {
 	set lines []
 	foreach stock [regexp -all -inline -- $::latoc::list_regexp $data] {
-		regexp $::latoc::stock_regexp $stock -> symbol name price last change percent volume interest
+		if {![regexp $::latoc::stock_regexp $stock -> symbol name price last change percent volume interest]} {
+			error "error parsing HTML"
+		}
+
 		set direction none
 		if {$change < 0} {
 			set direction Down
