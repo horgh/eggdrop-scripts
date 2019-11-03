@@ -50,8 +50,8 @@ namespace eval ::ud {
 
 	# regex to find the word
 	variable word_regex {<a class="word" href=.*?>(.*?)</a>}
-	variable list_regex {<div class="def-panel" data-defid="[0-9]+?">.*?<div class="def-footer">}
-	variable def_regex {<div class="def-panel" data-defid="([0-9]+?)">.*?<div class="meaning">(.*?)</div>}
+	variable list_regex {<div class="def-panel *" data-defid="[0-9]+?">.*?<div class="def-footer">}
+	variable def_regex  {<div class="def-panel *" data-defid="([0-9]+?)">.*?<div class="meaning">(.*?)</div>.*?<div class="example">(.*?)</div>}
 
 	setudef flag ud
 	bind pub -|- $::ud::trigger ::ud::handler
