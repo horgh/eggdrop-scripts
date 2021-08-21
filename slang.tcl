@@ -186,7 +186,7 @@ proc ::ud::http_fetch {url page} {
 
 	# Follow redirects
 	if {[regexp -- {30[01237]} $ncode]} {
-		set new_url [dict get $meta Location]
+		set new_url [::ud::get_location_header $meta]
 		# We lose our page parameter apparently.
 		if {$page != -1 && $page != 1} {
 			append new_url &page=$page
@@ -208,6 +208,16 @@ proc ::ud::http_fetch {url page} {
 	}
 
 	return [::ud::parse_word_and_definitions $data]
+}
+
+proc ::ud::get_location_header {meta} {
+	dict for {k v} $meta {
+		set k [string tolower $k]
+		if {$k == "location"} {
+			return $v
+		}
+	}
+	error "Location header not found"
 }
 
 # parse a response from a file.
